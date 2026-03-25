@@ -18,7 +18,9 @@
       }
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
@@ -32,12 +34,23 @@
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist .turbo"
   },
-  "keywords": ["dian", "ubl", "xml", "invoice", "colombia", "factura-electronica"],
+  "keywords": [
+    "dian",
+    "ubl",
+    "xml",
+    "invoice",
+    "colombia",
+    "factura-electronica"
+  ],
   "author": "Sergio Rojas <dian-kit@sergioarojasm98.com>",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/sergioarojasm98/dian-kit.git",
     "directory": "packages/core"
+  },
+  "dependencies": {
+    "xmlbuilder2": "^4.0.3",
+    "zod": "^4.3.6"
   }
 }
