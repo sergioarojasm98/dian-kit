@@ -1,0 +1,49 @@
+{
+  "name": "dian-kit",
+  "version": "0.0.1",
+  "description": "CLI for DIAN electronic invoicing in Colombia — invoices, POS documents, AI-powered natural language",
+  "type": "module",
+  "bin": {
+    "dian-kit": "./dist/bin.js"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:unit": "vitest run --dir tests/unit",
+    "lint": "biome check src/",
+    "lint:fix": "biome check --write src/",
+    "format": "biome format --write src/",
+    "check": "biome check src/",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist .turbo"
+  },
+  "keywords": ["dian", "cli", "factura-electronica", "colombia", "pos"],
+  "author": "Sergio Rojas <dian-kit@sergioarojasm98.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sergioarojasm98/dian-kit.git",
+    "directory": "packages/cli"
+  },
+  "dependencies": {
+    "@dian-kit/core": "workspace:*",
+    "@dian-kit/sdk-node": "workspace:*"
+  }
+}

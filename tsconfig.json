@@ -1,0 +1,37 @@
+{
+  "compilerOptions": {
+    "ignoreDeprecations": "6.0",
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022"],
+    "types": ["node"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "noUncheckedIndexedAccess": true,
+    "noEmit": true,
+    "paths": {
+      "@dian-kit/core": ["./packages/core/src/index.ts"],
+      "@dian-kit/core/*": ["./packages/core/src/*"],
+      "@dian-kit/sdk-node": ["./packages/sdk-node/src/index.ts"],
+      "@dian-kit/sdk-node/*": ["./packages/sdk-node/src/*"],
+      "@dian-kit/cli": ["./packages/cli/src/index.ts"],
+      "@dian-kit/cli/*": ["./packages/cli/src/*"],
+      "@dian-kit/ai": ["./packages/ai/src/index.ts"],
+      "@dian-kit/ai/*": ["./packages/ai/src/*"],
+      "@dian-kit/plugin-express": ["./plugins/express/src/index.ts"],
+      "@dian-kit/plugin-woocommerce": ["./plugins/woocommerce/src/index.ts"],
+      "@dian-kit/plugin-shopify": ["./plugins/shopify/src/index.ts"],
+      "@dian-kit/plugin-whatsapp": ["./plugins/whatsapp/src/index.ts"]
+    }
+  },
+  "exclude": ["node_modules", "dist", "build", "coverage"]
+}

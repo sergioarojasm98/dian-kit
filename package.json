@@ -1,0 +1,55 @@
+{
+  "name": "dian-kit-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "description": "El SDK open-source más completo para facturación electrónica DIAN en Colombia",
+  "author": "Sergio Rojas <dian-kit@sergioarojasm98.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sergioarojasm98/dian-kit.git"
+  },
+  "homepage": "https://github.com/sergioarojasm98/dian-kit",
+  "bugs": {
+    "url": "https://github.com/sergioarojasm98/dian-kit/issues"
+  },
+  "keywords": [
+    "dian",
+    "factura-electronica",
+    "colombia",
+    "ubl",
+    "invoice",
+    "pos",
+    "sdk"
+  ],
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.15.4",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "test": "turbo run test",
+    "test:unit": "turbo run test:unit",
+    "test:integration": "turbo run test:integration",
+    "lint": "turbo run lint",
+    "lint:fix": "turbo run lint:fix",
+    "format": "turbo run format",
+    "check": "turbo run check",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "turbo run build && changeset publish",
+    "typecheck": "turbo run typecheck"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.8",
+    "@changesets/cli": "^2.30.0",
+    "@types/node": "^25.5.0",
+    "tsup": "^8.5.1",
+    "turbo": "^2.8.20",
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.1"
+  }
+}
