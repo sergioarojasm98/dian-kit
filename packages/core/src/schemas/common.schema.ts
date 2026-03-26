@@ -122,6 +122,12 @@ export const BillingReferenceSchema = z.object({
   issueDate: z.date(),
 });
 
+export const DiscrepancyResponseSchema = z.object({
+  referenceId: z.string().min(1),
+  responseCode: z.string().min(1),
+  description: z.string().min(1),
+});
+
 export const SoftwareInfoSchema = z.object({
   id: z.string().min(1),
   pin: z.string().min(1),
@@ -155,6 +161,7 @@ export const DianDocumentSchema = z.object({
   paymentMeans: PaymentMeansSchema,
   period: InvoicePeriodSchema.optional(),
   billingReference: BillingReferenceSchema.optional(),
+  discrepancyResponse: DiscrepancyResponseSchema.optional(),
   software: SoftwareInfoSchema,
   numbering: NumberingAuthorizationSchema,
   notes: z.array(z.string()).optional(),

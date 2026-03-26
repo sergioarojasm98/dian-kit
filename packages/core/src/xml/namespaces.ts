@@ -16,6 +16,16 @@ export const SCHEMA_LOCATION = [
   "http://docs.oasis-open.org/ubl/os-UBL-2.1/xsd/maindoc/UBL-Invoice-2.1.xsd",
 ].join(" ");
 
+export const SCHEMA_LOCATION_CREDIT_NOTE = [
+  "urn:oasis:names:specification:ubl:schema:xsd:CreditNote-2",
+  "http://docs.oasis-open.org/ubl/os-UBL-2.1/xsd/maindoc/UBL-CreditNote-2.1.xsd",
+].join(" ");
+
+export const SCHEMA_LOCATION_DEBIT_NOTE = [
+  "urn:oasis:names:specification:ubl:schema:xsd:DebitNote-2",
+  "http://docs.oasis-open.org/ubl/os-UBL-2.1/xsd/maindoc/UBL-DebitNote-2.1.xsd",
+].join(" ");
+
 export const UBL_VERSION = "UBL 2.1";
 export const DIAN_PROFILE_INVOICE = "DIAN 2.1: Factura Electrónica de Venta";
 export const DIAN_PROFILE_POS = "DIAN 2.1: documento soporte en adquisiciones efectuadas a sujetos no obligados a expedir factura o documento equivalente";

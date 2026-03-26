@@ -13,7 +13,7 @@ import {
 } from "../../src/constants/index.js";
 import { generateCufe, generateSoftwareSecurityCode } from "../../src/security/cufe.js";
 import type { DianDocument } from "../../src/types/common.js";
-import { buildInvoiceXml } from "../../src/xml/builder.js";
+import { buildInvoiceXml, buildCreditNoteXml } from "../../src/xml/builder.js";
 
 function createTestDocument(
   docType: string = DocumentType.POS,
@@ -286,5 +286,114 @@ describe("buildInvoiceXml — Factura Electrónica de Venta", () => {
   it("includes buyer identification", () => {
     expect(xml).toContain("52123456");
     expect(xml).toContain("Juan Pérez");
+  });
+});
+
+describe("buildCreditNoteXml — Nota Crédito (type 91)", () => {
+  const baseDoc = createTestDocument(DocumentType.NOTA_CREDITO);
+  const doc: DianDocument = {
+    ...baseDoc,
+    id: "NC990000001",
+    operationType: OperationType.NOTA_CREDITO,
+    numbering: {
+      ...baseDoc.numbering,
+      prefix: "NC",
+    },
+    billingReference: {
+      id: "SETP990000001",
+      uuid: "abc123def456abc123def456abc123def456abc123def456abc123def456abc123def456abc123def456abc123def456",
+      issueDate: new Date(2026, 2, 20),
+    },
+    discrepancyResponse: {
+      referenceId: "SETP990000001",
+      responseCode: "2",
+      description: "Anulación de la factura",
+    },
+    notes: ["Nota crédito por anulación de factura SETP990000001"],
+  };
+
+  const uuid = generateCufe(doc);
+  const ssc = generateSoftwareSecurityCode(doc.software.id, doc.software.pin, doc.id);
+  const xml = buildCreditNoteXml(doc, uuid, ssc);
+
+  it("generates CreditNote root element (not Invoice)", () => {
+    expect(xml).toContain("<CreditNote");
+    expect(xml).toContain("</CreditNote>");
+    expect(xml).not.toContain("<Invoice");
+  });
+
+  it("uses CreditNote namespace", () => {
+    expect(xml).toContain("urn:oasis:names:specification:ubl:schema:xsd:CreditNote-2");
+    expect(xml).not.toContain("urn:oasis:names:specification:ubl:schema:xsd:Invoice-2");
+  });
+
+  it("uses CreditNote schema location", () => {
+    expect(xml).toContain("UBL-CreditNote-2.1.xsd");
+  });
+
+  it("uses CreditNoteTypeCode instead of InvoiceTypeCode", () => {
+    expect(xml).toContain("<cbc:CreditNoteTypeCode>91</cbc:CreditNoteTypeCode>");
+    expect(xml).not.toContain("InvoiceTypeCode");
+  });
+
+  it("uses CreditNoteLine instead of InvoiceLine", () => {
+    expect(xml).toContain("<cac:CreditNoteLine>");
+    expect(xml).toContain("</cac:CreditNoteLine>");
+    expect(xml).not.toContain("InvoiceLine");
+  });
+
+  it("uses CreditedQuantity instead of InvoicedQuantity", () => {
+    expect(xml).toContain("<cbc:CreditedQuantity");
+    expect(xml).not.toContain("InvoicedQuantity");
+  });
+
+  it("includes CUDE-SHA384 scheme name", () => {
+    expect(xml).toContain('schemeName="CUDE-SHA384"');
+  });
+
+  it("includes BillingReference with original invoice", () => {
+    expect(xml).toContain("InvoiceDocumentReference");
+    expect(xml).toContain("<cbc:ID>SETP990000001</cbc:ID>");
+    expect(xml).toContain('schemeName="CUFE-SHA384"');
+  });
+
+  it("includes DiscrepancyResponse", () => {
+    expect(xml).toContain("<cac:DiscrepancyResponse>");
+    expect(xml).toContain("<cbc:ReferenceID>SETP990000001</cbc:ReferenceID>");
+    expect(xml).toContain("<cbc:ResponseCode>2</cbc:ResponseCode>");
+    expect(xml).toContain("<cbc:Description>Anulación de la factura</cbc:Description>");
+  });
+
+  it("includes note text", () => {
+    expect(xml).toContain("Nota crédito por anulación de factura SETP990000001");
+  });
+
+  it("includes ProfileID for Nota Crédito", () => {
+    expect(xml).toContain("DIAN 2.1: Nota Crédito de Factura Electrónica de Venta");
+  });
+
+  it("includes all required namespaces", () => {
+    expect(xml).toContain("xmlns:cac=");
+    expect(xml).toContain("xmlns:cbc=");
+    expect(xml).toContain("xmlns:ext=");
+    expect(xml).toContain("xmlns:sts=");
+    expect(xml).toContain("xmlns:ds=");
+  });
+
+  it("includes DIAN extensions", () => {
+    expect(xml).toContain("DianExtensions");
+    expect(xml).toContain("SoftwareSecurityCode");
+    expect(xml).toContain("QRCode");
+  });
+
+  it("includes supplier and customer data", () => {
+    expect(xml).toContain("900123456");
+    expect(xml).toContain("Peluquería Estilo Total");
+  });
+
+  it("includes tax totals and monetary totals", () => {
+    expect(xml).toContain("19950.00");
+    expect(xml).toContain("<cbc:PayableAmount");
+    expect(xml).toContain("124950.00");
   });
 });

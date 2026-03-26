@@ -15,7 +15,50 @@ import type {
   TaxTotal,
 } from "../types/common.js";
 import { formatAmount, formatDate, formatPercent, formatTime } from "../utils/amount.js";
-import { NS, SCHEMA_LOCATION, UBL_VERSION } from "./namespaces.js";
+import { NS, SCHEMA_LOCATION, SCHEMA_LOCATION_CREDIT_NOTE, SCHEMA_LOCATION_DEBIT_NOTE, UBL_VERSION } from "./namespaces.js";
+
+const CREDIT_NOTE_DOCUMENTS: ReadonlySet<string> = new Set([DocumentType.NOTA_CREDITO, DocumentType.NOTA_AJUSTE_CREDITO_DOC_EQUIV]);
+const DEBIT_NOTE_DOCUMENTS: ReadonlySet<string> = new Set([DocumentType.NOTA_DEBITO, DocumentType.NOTA_AJUSTE_DEBITO_DOC_EQUIV]);
+
+interface DocumentConfig {
+  rootName: string;
+  ns: string;
+  schemaLocation: string;
+  lineTag: string;
+  quantityTag: string;
+  typeCodeTag: string;
+}
+
+function getDocumentConfig(docType: string): DocumentConfig {
+  if (CREDIT_NOTE_DOCUMENTS.has(docType)) {
+    return {
+      rootName: "CreditNote",
+      ns: NS.CREDIT_NOTE,
+      schemaLocation: SCHEMA_LOCATION_CREDIT_NOTE,
+      lineTag: "CreditNoteLine",
+      quantityTag: "CreditedQuantity",
+      typeCodeTag: "CreditNoteTypeCode",
+    };
+  }
+  if (DEBIT_NOTE_DOCUMENTS.has(docType)) {
+    return {
+      rootName: "DebitNote",
+      ns: NS.DEBIT_NOTE,
+      schemaLocation: SCHEMA_LOCATION_DEBIT_NOTE,
+      lineTag: "DebitNoteLine",
+      quantityTag: "DebitedQuantity",
+      typeCodeTag: "DebitNoteTypeCode",
+    };
+  }
+  return {
+    rootName: "Invoice",
+    ns: NS.INVOICE,
+    schemaLocation: SCHEMA_LOCATION,
+    lineTag: "InvoiceLine",
+    quantityTag: "InvoicedQuantity",
+    typeCodeTag: "InvoiceTypeCode",
+  };
+}
 
 function profileIdForDocumentType(docType: string): string {
   switch (docType) {
@@ -213,14 +256,16 @@ function addMonetaryTotalNode(
     .txt(formatAmount(total.payableAmount));
 }
 
-function addInvoiceLineNode(
+function addLineNode(
   parent: XMLBuilder,
   line: InvoiceLine,
   currency: string,
+  lineTag: string,
+  quantityTag: string,
 ): void {
-  const node = parent.ele(NS.CAC, "InvoiceLine");
+  const node = parent.ele(NS.CAC, lineTag);
   node.ele(NS.CBC, "ID").txt(line.id);
-  node.ele(NS.CBC, "InvoicedQuantity")
+  node.ele(NS.CBC, quantityTag)
     .att("unitCode", line.unitCode ?? "EA")
     .txt(String(line.quantity));
   node.ele(NS.CBC, "LineExtensionAmount")
@@ -358,19 +403,18 @@ export interface BuildXmlResult {
 }
 
 /**
- * Builds a complete UBL 2.1 XML document for DIAN.
- * Works for Invoice (01), POS (20), Credit Note (91), Debit Note (92).
- *
- * The UUID (CUFE/CUDE) and SoftwareSecurityCode must be pre-computed
- * and passed in — this builder only handles XML structure.
+ * Builds the core UBL 2.1 XML structure shared by all DIAN document types.
+ * Uses `getDocumentConfig()` to select root element, namespace, and element names.
  */
-export function buildInvoiceXml(
+function buildDocumentXml(
   doc: DianDocument,
   uuid: string,
   softwareSecurityCode: string,
 ): string {
+  const config = getDocumentConfig(doc.documentType);
+
   const root = create({ version: "1.0", encoding: "UTF-8", standalone: false })
-    .ele(NS.INVOICE, "Invoice");
+    .ele(config.ns, config.rootName);
 
   // Namespace declarations
   root.att("xmlns:cac", NS.CAC);
@@ -380,7 +424,7 @@ export function buildInvoiceXml(
   root.att("xmlns:ds", NS.DS);
   root.att("xmlns:xades", NS.XADES);
   root.att("xmlns:xsi", NS.XSI);
-  root.att("xsi:schemaLocation", SCHEMA_LOCATION);
+  root.att("xsi:schemaLocation", config.schemaLocation);
 
   // 1. UBLExtensions
   const extensions = root.ele(NS.EXT, "UBLExtensions");
@@ -425,8 +469,8 @@ export function buildInvoiceXml(
   // 9. IssueTime
   root.ele(NS.CBC, "IssueTime").txt(formatTime(doc.issueTime));
 
-  // 10. InvoiceTypeCode
-  root.ele(NS.CBC, "InvoiceTypeCode").txt(doc.documentType);
+  // 10. Document type code (InvoiceTypeCode / CreditNoteTypeCode / DebitNoteTypeCode)
+  root.ele(NS.CBC, config.typeCodeTag).txt(doc.documentType);
 
   // 11. Notes
   if (doc.notes) {
@@ -448,7 +492,15 @@ export function buildInvoiceXml(
     periodNode.ele(NS.CBC, "EndDate").txt(formatDate(doc.period.endDate));
   }
 
-  // 15. BillingReference (for credit/debit notes)
+  // 15. DiscrepancyResponse (for credit/debit notes)
+  if (doc.discrepancyResponse) {
+    const discrepancy = root.ele(NS.CAC, "DiscrepancyResponse");
+    discrepancy.ele(NS.CBC, "ReferenceID").txt(doc.discrepancyResponse.referenceId);
+    discrepancy.ele(NS.CBC, "ResponseCode").txt(doc.discrepancyResponse.responseCode);
+    discrepancy.ele(NS.CBC, "Description").txt(doc.discrepancyResponse.description);
+  }
+
+  // 16. BillingReference (for credit/debit notes)
   if (doc.billingReference) {
     const billingRef = root.ele(NS.CAC, "BillingReference");
     const invoiceRef = billingRef.ele(NS.CAC, "InvoiceDocumentReference");
@@ -459,30 +511,62 @@ export function buildInvoiceXml(
     invoiceRef.ele(NS.CBC, "IssueDate").txt(formatDate(doc.billingReference.issueDate));
   }
 
-  // 16. AccountingSupplierParty
+  // 17. AccountingSupplierParty
   addPartyNode(root, "AccountingSupplierParty", doc.supplier);
 
-  // 17. AccountingCustomerParty
+  // 18. AccountingCustomerParty
   addPartyNode(root, "AccountingCustomerParty", doc.customer);
 
-  // 18. PaymentMeans
+  // 19. PaymentMeans
   addPaymentMeansNode(root, doc.paymentMeans);
 
-  // 19. AllowanceCharge (document level)
+  // 20. AllowanceCharge (document level)
   // (handled in lines for now)
 
-  // 20. TaxTotal
+  // 21. TaxTotal
   for (const taxTotal of doc.taxTotals) {
     addTaxTotalNode(root, taxTotal, doc.currency);
   }
 
-  // 21. LegalMonetaryTotal
+  // 22. LegalMonetaryTotal
   addMonetaryTotalNode(root, doc.legalMonetaryTotal, doc.currency);
 
-  // 22. InvoiceLines
+  // 23. Lines (InvoiceLine / CreditNoteLine / DebitNoteLine)
   for (const line of doc.lines) {
-    addInvoiceLineNode(root, line, doc.currency);
+    addLineNode(root, line, doc.currency, config.lineTag, config.quantityTag);
   }
 
   return root.end({ prettyPrint: true, indent: "  " });
+}
+
+/**
+ * Builds a complete UBL 2.1 Invoice XML for DIAN.
+ * Works for Invoice (01) and POS (20).
+ *
+ * The UUID (CUFE/CUDE) and SoftwareSecurityCode must be pre-computed
+ * and passed in — this builder only handles XML structure.
+ */
+export function buildInvoiceXml(
+  doc: DianDocument,
+  uuid: string,
+  softwareSecurityCode: string,
+): string {
+  return buildDocumentXml(doc, uuid, softwareSecurityCode);
+}
+
+/**
+ * Builds a complete UBL 2.1 CreditNote XML for DIAN (type 91, 94).
+ *
+ * Generates `<CreditNote>` root with correct namespace, `CreditNoteLine`,
+ * `CreditedQuantity`, and `CreditNoteTypeCode` elements.
+ *
+ * The UUID (CUDE) and SoftwareSecurityCode must be pre-computed
+ * and passed in — this builder only handles XML structure.
+ */
+export function buildCreditNoteXml(
+  doc: DianDocument,
+  uuid: string,
+  softwareSecurityCode: string,
+): string {
+  return buildDocumentXml(doc, uuid, softwareSecurityCode);
 }

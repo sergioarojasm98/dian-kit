@@ -110,6 +110,15 @@ export interface BillingReference {
   issueDate: Date;
 }
 
+export interface DiscrepancyResponse {
+  /** ID de la factura original que se está corrigiendo */
+  referenceId: string;
+  /** Código de corrección DIAN (ej: "1" = devolución parcial, "2" = anulación) */
+  responseCode: string;
+  /** Descripción de la razón de la nota crédito/débito */
+  description: string;
+}
+
 export interface SoftwareInfo {
   id: string;
   pin: string;
@@ -144,6 +153,7 @@ export interface DianDocument {
   paymentMeans: PaymentMeans;
   period?: InvoicePeriod;
   billingReference?: BillingReference;
+  discrepancyResponse?: DiscrepancyResponse;
   software: SoftwareInfo;
   numbering: NumberingAuthorization;
   notes?: string[];
