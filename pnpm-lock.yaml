@@ -50,6 +50,9 @@ importers:
       '@xmldom/xmldom':
         specifier: ^0.8.11
         version: 0.8.11
+      fflate:
+        specifier: ^0.8.2
+        version: 0.8.2
       node-forge:
         specifier: ^1.4.0
         version: 1.4.0
@@ -918,6 +921,9 @@ packages:
     peerDependenciesMeta:
       picomatch:
         optional: true
+
+  fflate@0.8.2:
+    resolution: {integrity: sha512-cPJU47OaAoCbg0pBvzsgpTPhmhqI5eJjh/JIu8tPj5q+T7iLvW/JAYUqmE7KOB4R1ZyEhzBaIQpQpardBF5z8A==}
 
   fill-range@7.1.1:
     resolution: {integrity: sha512-YsGpe3WHLK8ZYi4tWDg2Jy3ebRz2rXowDxnld4bkQB00cc/1Zw9AWnC0i9ztDJitivtQvaI9KaLyKrc+hBW0yg==}
@@ -2223,6 +2229,8 @@ snapshots:
   fdir@6.5.0(picomatch@4.0.4):
     optionalDependencies:
       picomatch: 4.0.4
+
+  fflate@0.8.2: {}
 
   fill-range@7.1.1:
     dependencies:

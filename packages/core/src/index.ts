@@ -25,3 +25,6 @@ export * from "./security/index.js";
 
 // Utilities
 export * from "./utils/index.js";
+
+// Transport (cliente SOAP/WCF para API DIAN)
+export * from "./transport/index.js";

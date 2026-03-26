@@ -51,6 +51,7 @@
   },
   "dependencies": {
     "@xmldom/xmldom": "^0.8.11",
+    "fflate": "^0.8.2",
     "node-forge": "^1.4.0",
     "xadesjs": "^2.6.6",
     "xml-core": "^1.2.5",
