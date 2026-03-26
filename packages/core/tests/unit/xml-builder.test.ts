@@ -13,7 +13,7 @@ import {
 } from "../../src/constants/index.js";
 import { generateCufe, generateSoftwareSecurityCode } from "../../src/security/cufe.js";
 import type { DianDocument } from "../../src/types/common.js";
-import { buildInvoiceXml, buildCreditNoteXml } from "../../src/xml/builder.js";
+import { buildInvoiceXml, buildCreditNoteXml, buildDebitNoteXml } from "../../src/xml/builder.js";
 
 function createTestDocument(
   docType: string = DocumentType.POS,
@@ -370,6 +370,120 @@ describe("buildCreditNoteXml — Nota Crédito (type 91)", () => {
 
   it("includes ProfileID for Nota Crédito", () => {
     expect(xml).toContain("DIAN 2.1: Nota Crédito de Factura Electrónica de Venta");
+  });
+
+  it("includes all required namespaces", () => {
+    expect(xml).toContain("xmlns:cac=");
+    expect(xml).toContain("xmlns:cbc=");
+    expect(xml).toContain("xmlns:ext=");
+    expect(xml).toContain("xmlns:sts=");
+    expect(xml).toContain("xmlns:ds=");
+  });
+
+  it("includes DIAN extensions", () => {
+    expect(xml).toContain("DianExtensions");
+    expect(xml).toContain("SoftwareSecurityCode");
+    expect(xml).toContain("QRCode");
+  });
+
+  it("includes supplier and customer data", () => {
+    expect(xml).toContain("900123456");
+    expect(xml).toContain("Peluquería Estilo Total");
+  });
+
+  it("includes tax totals and monetary totals", () => {
+    expect(xml).toContain("19950.00");
+    expect(xml).toContain("<cbc:PayableAmount");
+    expect(xml).toContain("124950.00");
+  });
+});
+
+describe("buildDebitNoteXml — Nota Débito (type 92)", () => {
+  const baseDoc = createTestDocument(DocumentType.NOTA_DEBITO);
+  const doc: DianDocument = {
+    ...baseDoc,
+    id: "ND990000001",
+    operationType: OperationType.NOTA_DEBITO,
+    numbering: {
+      ...baseDoc.numbering,
+      prefix: "ND",
+    },
+    billingReference: {
+      id: "SETP990000001",
+      uuid: "abc123def456abc123def456abc123def456abc123def456abc123def456abc123def456abc123def456abc123def456",
+      issueDate: new Date(2026, 2, 20),
+    },
+    discrepancyResponse: {
+      referenceId: "SETP990000001",
+      responseCode: "1",
+      description: "Intereses por mora en el pago",
+    },
+    notes: ["Nota débito por intereses de mora sobre factura SETP990000001"],
+  };
+
+  const uuid = generateCufe(doc);
+  const ssc = generateSoftwareSecurityCode(doc.software.id, doc.software.pin, doc.id);
+  const xml = buildDebitNoteXml(doc, uuid, ssc);
+
+  it("generates DebitNote root element (not Invoice or CreditNote)", () => {
+    expect(xml).toContain("<DebitNote");
+    expect(xml).toContain("</DebitNote>");
+    expect(xml).not.toContain("<Invoice");
+    expect(xml).not.toContain("<CreditNote");
+  });
+
+  it("uses DebitNote namespace", () => {
+    expect(xml).toContain("urn:oasis:names:specification:ubl:schema:xsd:DebitNote-2");
+    expect(xml).not.toContain("urn:oasis:names:specification:ubl:schema:xsd:Invoice-2");
+    expect(xml).not.toContain("urn:oasis:names:specification:ubl:schema:xsd:CreditNote-2");
+  });
+
+  it("uses DebitNote schema location", () => {
+    expect(xml).toContain("UBL-DebitNote-2.1.xsd");
+  });
+
+  it("uses DebitNoteTypeCode instead of InvoiceTypeCode", () => {
+    expect(xml).toContain("<cbc:DebitNoteTypeCode>92</cbc:DebitNoteTypeCode>");
+    expect(xml).not.toContain("InvoiceTypeCode");
+    expect(xml).not.toContain("CreditNoteTypeCode");
+  });
+
+  it("uses DebitNoteLine instead of InvoiceLine", () => {
+    expect(xml).toContain("<cac:DebitNoteLine>");
+    expect(xml).toContain("</cac:DebitNoteLine>");
+    expect(xml).not.toContain("InvoiceLine");
+    expect(xml).not.toContain("CreditNoteLine");
+  });
+
+  it("uses DebitedQuantity instead of InvoicedQuantity", () => {
+    expect(xml).toContain("<cbc:DebitedQuantity");
+    expect(xml).not.toContain("InvoicedQuantity");
+    expect(xml).not.toContain("CreditedQuantity");
+  });
+
+  it("includes CUDE-SHA384 scheme name", () => {
+    expect(xml).toContain('schemeName="CUDE-SHA384"');
+  });
+
+  it("includes BillingReference with original invoice", () => {
+    expect(xml).toContain("InvoiceDocumentReference");
+    expect(xml).toContain("<cbc:ID>SETP990000001</cbc:ID>");
+    expect(xml).toContain('schemeName="CUFE-SHA384"');
+  });
+
+  it("includes DiscrepancyResponse", () => {
+    expect(xml).toContain("<cac:DiscrepancyResponse>");
+    expect(xml).toContain("<cbc:ReferenceID>SETP990000001</cbc:ReferenceID>");
+    expect(xml).toContain("<cbc:ResponseCode>1</cbc:ResponseCode>");
+    expect(xml).toContain("<cbc:Description>Intereses por mora en el pago</cbc:Description>");
+  });
+
+  it("includes note text", () => {
+    expect(xml).toContain("Nota débito por intereses de mora sobre factura SETP990000001");
+  });
+
+  it("includes ProfileID for Nota Débito", () => {
+    expect(xml).toContain("DIAN 2.1: Nota Débito de Factura Electrónica de Venta");
   });
 
   it("includes all required namespaces", () => {

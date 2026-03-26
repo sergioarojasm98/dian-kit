@@ -570,3 +570,20 @@ export function buildCreditNoteXml(
 ): string {
   return buildDocumentXml(doc, uuid, softwareSecurityCode);
 }
+
+/**
+ * Builds a complete UBL 2.1 DebitNote XML for DIAN (type 92, 93).
+ *
+ * Generates `<DebitNote>` root with correct namespace, `DebitNoteLine`,
+ * `DebitedQuantity`, and `DebitNoteTypeCode` elements.
+ *
+ * The UUID (CUDE) and SoftwareSecurityCode must be pre-computed
+ * and passed in — this builder only handles XML structure.
+ */
+export function buildDebitNoteXml(
+  doc: DianDocument,
+  uuid: string,
+  softwareSecurityCode: string,
+): string {
+  return buildDocumentXml(doc, uuid, softwareSecurityCode);
+}
