@@ -1,4 +1,4 @@
-import type { DianCredentials, GetNumberingRangeOptions } from "./types.js";
+import type { DianCredentials, GetAcquirerOptions, GetNumberingRangeOptions } from "./types.js";
 
 const NS_SOAP = "http://www.w3.org/2003/05/soap-envelope";
 const NS_WSSE =
@@ -136,6 +136,22 @@ export function buildGetStatusZipEnvelope(
   const body = `<wcf:GetStatusZip>
       <wcf:trackId>${escapeXml(trackId)}</wcf:trackId>
     </wcf:GetStatusZip>`;
+  return buildEnvelope(header, body);
+}
+
+/**
+ * Construye el envelope para `GetAcquirer`.
+ * Consulta datos del adquiriente (comprador) por tipo y número de identificación.
+ */
+export function buildGetAcquirerEnvelope(
+  options: Pick<GetAcquirerOptions, "identificationType" | "identificationNumber" | "credentials">,
+): string {
+  const { identificationType, identificationNumber, credentials } = options;
+  const header = buildSecurityHeader(credentials);
+  const body = `<wcf:GetAcquirer>
+      <wcf:identificationType>${escapeXml(identificationType)}</wcf:identificationType>
+      <wcf:identificationNumber>${escapeXml(identificationNumber)}</wcf:identificationNumber>
+    </wcf:GetAcquirer>`;
   return buildEnvelope(header, body);
 }
 

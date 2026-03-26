@@ -23,4 +23,5 @@ export const DianSoapMethod = {
   GET_STATUS: "GetStatus",
   GET_STATUS_ZIP: "GetStatusZip",
   GET_NUMBERING_RANGE: "GetNumberingRange",
+  GET_ACQUIRER: "GetAcquirer",
 } as const;

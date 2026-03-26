@@ -1,6 +1,7 @@
 import { DOMParser } from "@xmldom/xmldom";
 
 import type {
+  DianAcquirerResponse,
   DianNumberingRange,
   DianNumberingRangeResponse,
   DianSendResponse,
@@ -131,6 +132,22 @@ export function parseStatusResponse(rawXml: string): DianStatusResponse {
     statusCode,
     statusDescription,
     errors,
+    rawResponse: rawXml,
+  };
+}
+
+/**
+ * Parsea la respuesta de GetAcquirer.
+ */
+export function parseAcquirerResponse(rawXml: string): DianAcquirerResponse {
+  const doc = parseXml(rawXml);
+  checkForFault(doc, rawXml);
+
+  return {
+    receiverName: getText(doc, "ReceiverName"),
+    receiverEmail: getText(doc, "ReceiverEmail"),
+    statusCode: getText(doc, "StatusCode"),
+    message: getText(doc, "Message"),
     rawResponse: rawXml,
   };
 }

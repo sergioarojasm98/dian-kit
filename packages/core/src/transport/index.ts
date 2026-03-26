@@ -1,5 +1,6 @@
-export { getNumberingRange, getStatus, getStatusZip, sendBill } from "./dian-client.js";
+export { getAcquirer, getNumberingRange, getStatus, getStatusZip, sendBill } from "./dian-client.js";
 export type {
+  DianAcquirerResponse,
   DianCredentials,
   DianNumberingRange,
   DianNumberingRangeResponse,
@@ -7,6 +8,7 @@ export type {
   DianSoapMethodValue,
   DianStatusResponse,
   DianValidationError,
+  GetAcquirerOptions,
   GetNumberingRangeOptions,
   GetStatusOptions,
   SendBillOptions,

@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DianEndpoint, DianSoapMethod } from "../../src/constants/dian-endpoints.js";
 import { Environment } from "../../src/constants/document-types.js";
-import { getNumberingRange, getStatus, getStatusZip, sendBill } from "../../src/transport/dian-client.js";
+import { getAcquirer, getNumberingRange, getStatus, getStatusZip, sendBill } from "../../src/transport/dian-client.js";
 import * as httpClient from "../../src/transport/http-client.js";
 import { DianTransportError } from "../../src/transport/types.js";
 
@@ -56,6 +56,20 @@ const MOCK_NUMBERING_RESPONSE = `<?xml version="1.0" encoding="utf-8"?>
         </b:ResponseList>
       </GetNumberingRangeResult>
     </GetNumberingRangeResponse>
+  </s:Body>
+</s:Envelope>`;
+
+const MOCK_ACQUIRER_RESPONSE = `<?xml version="1.0" encoding="utf-8"?>
+<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope">
+  <s:Body>
+    <GetAcquirerResponse xmlns="http://wcf.dian.colombia">
+      <GetAcquirerResult xmlns:b="http://schemas.datacontract.org/2004/07/Gosocket.Dian.Services.Utils.Common">
+        <b:Message>Operación exitosa</b:Message>
+        <b:ReceiverEmail>facturacion@empresa.com</b:ReceiverEmail>
+        <b:ReceiverName>EMPRESA XYZ SAS</b:ReceiverName>
+        <b:StatusCode>00</b:StatusCode>
+      </GetAcquirerResult>
+    </GetAcquirerResponse>
   </s:Body>
 </s:Envelope>`;
 
@@ -235,5 +249,79 @@ describe("getNumberingRange", () => {
     expect(result.ranges).toHaveLength(1);
     expect(result.ranges[0]!.prefix).toBe("SETP");
     expect(result.ranges[0]!.authorizationNumber).toBe("18760000001");
+  });
+});
+
+describe("getAcquirer", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("pasa identificationType e identificationNumber al SOAP body", async () => {
+    const postSoapSpy = vi
+      .spyOn(httpClient, "postSoap")
+      .mockResolvedValue(MOCK_ACQUIRER_RESPONSE);
+
+    await getAcquirer({
+      identificationType: "31",
+      identificationNumber: "900123456",
+      credentials: CREDS,
+      environment: Environment.HABILITACION,
+    });
+
+    const call = postSoapSpy.mock.calls[0]![0];
+    expect(call.body).toContain("<wcf:identificationNumber>900123456</wcf:identificationNumber>");
+    expect(call.body).toContain("<wcf:identificationType>31</wcf:identificationType>");
+    expect(call.soapAction).toContain("GetAcquirer");
+  });
+
+  it("usa el endpoint sandbox para HABILITACION", async () => {
+    const postSoapSpy = vi
+      .spyOn(httpClient, "postSoap")
+      .mockResolvedValue(MOCK_ACQUIRER_RESPONSE);
+
+    await getAcquirer({
+      identificationType: "31",
+      identificationNumber: "900123456",
+      credentials: CREDS,
+      environment: Environment.HABILITACION,
+    });
+
+    expect(postSoapSpy.mock.calls[0]![0].url).toBe(DianEndpoint.SANDBOX.SERVICE);
+  });
+
+  it("retorna DianAcquirerResponse con datos del adquiriente", async () => {
+    vi.spyOn(httpClient, "postSoap").mockResolvedValue(MOCK_ACQUIRER_RESPONSE);
+
+    const result = await getAcquirer({
+      identificationType: "31",
+      identificationNumber: "900123456",
+      credentials: CREDS,
+      environment: Environment.HABILITACION,
+    });
+
+    expect(result.receiverName).toBe("EMPRESA XYZ SAS");
+    expect(result.receiverEmail).toBe("facturacion@empresa.com");
+    expect(result.statusCode).toBe("00");
+    expect(result.message).toBe("Operación exitosa");
+  });
+
+  it("propaga DianTransportError cuando postSoap falla", async () => {
+    vi.spyOn(httpClient, "postSoap").mockRejectedValue(
+      new DianTransportError("El servidor DIAN retornó HTTP 500.", 500),
+    );
+
+    await expect(
+      getAcquirer({
+        identificationType: "31",
+        identificationNumber: "900123456",
+        credentials: CREDS,
+        environment: Environment.HABILITACION,
+      }),
+    ).rejects.toThrow(DianTransportError);
   });
 });

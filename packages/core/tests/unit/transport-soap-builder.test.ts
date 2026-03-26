@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   DIAN_ACTION_BASE,
+  buildGetAcquirerEnvelope,
   buildGetNumberingRangeEnvelope,
   buildGetStatusEnvelope,
   buildGetStatusZipEnvelope,
@@ -125,6 +126,38 @@ describe("buildGetNumberingRangeEnvelope", () => {
     expect(getText(doc, "accountCode")).toBe("900123456");
     expect(getText(doc, "accountCodeT")).toBe("800000001");
     expect(getText(doc, "softwareCode")).toBe("SW-001");
+  });
+});
+
+describe("buildGetAcquirerEnvelope", () => {
+  it("incluye identificationType e identificationNumber en el body", () => {
+    const xml = buildGetAcquirerEnvelope({
+      identificationType: "31",
+      identificationNumber: "900123456",
+      credentials: CREDS,
+    });
+    const doc = parseEnvelope(xml);
+    expect(getText(doc, "identificationType")).toBe("31");
+    expect(getText(doc, "identificationNumber")).toBe("900123456");
+  });
+
+  it("usa GetAcquirer como operación", () => {
+    const xml = buildGetAcquirerEnvelope({
+      identificationType: "31",
+      identificationNumber: "900123456",
+      credentials: CREDS,
+    });
+    expect(xml).toContain("GetAcquirer");
+  });
+
+  it("escapa caracteres especiales XML en el número de identificación", () => {
+    const xml = buildGetAcquirerEnvelope({
+      identificationType: "31",
+      identificationNumber: "900<inject>",
+      credentials: CREDS,
+    });
+    expect(xml).not.toContain("<inject>");
+    expect(xml).toContain("&lt;inject&gt;");
   });
 });
 

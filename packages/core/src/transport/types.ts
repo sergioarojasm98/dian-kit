@@ -69,6 +69,34 @@ export interface GetNumberingRangeOptions {
   timeoutMs?: number;
 }
 
+/** Opciones para consultar datos de un adquiriente (comprador) */
+export interface GetAcquirerOptions {
+  /** Tipo de identificación del adquiriente (ej: "31" para NIT, "13" para CC) */
+  identificationType: string;
+  /** Número de identificación del adquiriente (sin DV, sin guiones) */
+  identificationNumber: string;
+  /** Credenciales WS-Security */
+  credentials: DianCredentials;
+  /** Entorno DIAN */
+  environment: EnvironmentValue;
+  /** Timeout HTTP en milisegundos (default: 30_000) */
+  timeoutMs?: number;
+}
+
+/** Respuesta de DIAN para consulta de adquiriente (GetAcquirer) */
+export interface DianAcquirerResponse {
+  /** Nombre o razón social del adquiriente registrado en DIAN */
+  receiverName: string;
+  /** Email del adquiriente registrado en DIAN */
+  receiverEmail: string;
+  /** Código de estado (ej: "00" = encontrado) */
+  statusCode: string;
+  /** Mensaje de DIAN (descripción del resultado) */
+  message: string;
+  /** Respuesta SOAP raw para debugging */
+  rawResponse: string;
+}
+
 /** Error individual de validación retornado por DIAN */
 export interface DianValidationError {
   code: string;

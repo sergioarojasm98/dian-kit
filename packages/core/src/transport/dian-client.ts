@@ -1,8 +1,9 @@
 import { DianEndpoint, DianSoapMethod } from "../constants/dian-endpoints.js";
 import { Environment } from "../constants/document-types.js";
 import { postSoap } from "./http-client.js";
-import { parseNumberingRangeResponse, parseSendResponse, parseStatusResponse } from "./response-parser.js";
+import { parseAcquirerResponse, parseNumberingRangeResponse, parseSendResponse, parseStatusResponse } from "./response-parser.js";
 import {
+  buildGetAcquirerEnvelope,
   buildGetNumberingRangeEnvelope,
   buildGetStatusEnvelope,
   buildGetStatusZipEnvelope,
@@ -12,9 +13,11 @@ import {
   getSoapAction,
 } from "./soap-builder.js";
 import type {
+  DianAcquirerResponse,
   DianNumberingRangeResponse,
   DianSendResponse,
   DianStatusResponse,
+  GetAcquirerOptions,
   GetNumberingRangeOptions,
   GetStatusOptions,
   SendBillOptions,
@@ -139,4 +142,35 @@ export async function getNumberingRange(
   const rawResponse = await postSoap({ url, soapAction, body: envelope, timeoutMs });
 
   return parseNumberingRangeResponse(rawResponse);
+}
+
+/**
+ * Consulta los datos de un adquiriente (comprador) registrado en DIAN.
+ *
+ * Útil para autocompletar datos del comprador al crear una factura:
+ * nombre/razón social y email registrado ante DIAN.
+ *
+ * @example
+ * ```typescript
+ * const buyer = await getAcquirer({
+ *   identificationType: "31",        // NIT
+ *   identificationNumber: "900123456",
+ *   credentials: { nit: "800456789", password: "softwarePin" },
+ *   environment: Environment.HABILITACION,
+ * });
+ * console.log(buyer.receiverName);  // "EMPRESA XYZ SAS"
+ * console.log(buyer.receiverEmail); // "facturacion@empresa.com"
+ * ```
+ */
+export async function getAcquirer(
+  options: GetAcquirerOptions,
+): Promise<DianAcquirerResponse> {
+  const { environment, timeoutMs = DEFAULT_TIMEOUT_MS } = options;
+
+  const url = getServiceUrl(environment);
+  const envelope = buildGetAcquirerEnvelope(options);
+  const soapAction = getSoapAction(DianSoapMethod.GET_ACQUIRER);
+  const rawResponse = await postSoap({ url, soapAction, body: envelope, timeoutMs });
+
+  return parseAcquirerResponse(rawResponse);
 }

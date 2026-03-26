@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  parseAcquirerResponse,
   parseNumberingRangeResponse,
   parseSendResponse,
   parseStatusResponse,
@@ -143,6 +144,64 @@ describe("parseStatusResponse", () => {
   it("incluye el rawResponse original", () => {
     const result = parseStatusResponse(STATUS_RESPONSE);
     expect(result.rawResponse).toBe(STATUS_RESPONSE);
+  });
+});
+
+describe("parseAcquirerResponse", () => {
+  const ACQUIRER_RESPONSE_FOUND = `<?xml version="1.0" encoding="utf-8"?>
+<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope">
+  <s:Body>
+    <GetAcquirerResponse xmlns="http://wcf.dian.colombia">
+      <GetAcquirerResult xmlns:b="http://schemas.datacontract.org/2004/07/Gosocket.Dian.Services.Utils.Common">
+        <b:Message>Operación exitosa</b:Message>
+        <b:ReceiverEmail>facturacion@empresa.com</b:ReceiverEmail>
+        <b:ReceiverName>EMPRESA XYZ SAS</b:ReceiverName>
+        <b:StatusCode>00</b:StatusCode>
+      </GetAcquirerResult>
+    </GetAcquirerResponse>
+  </s:Body>
+</s:Envelope>`;
+
+  const ACQUIRER_RESPONSE_NOT_FOUND = `<?xml version="1.0" encoding="utf-8"?>
+<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope">
+  <s:Body>
+    <GetAcquirerResponse xmlns="http://wcf.dian.colombia">
+      <GetAcquirerResult xmlns:b="http://schemas.datacontract.org/2004/07/Gosocket.Dian.Services.Utils.Common">
+        <b:Message>NIT no encontrado</b:Message>
+        <b:ReceiverEmail/>
+        <b:ReceiverName/>
+        <b:StatusCode>99</b:StatusCode>
+      </GetAcquirerResult>
+    </GetAcquirerResponse>
+  </s:Body>
+</s:Envelope>`;
+
+  it("extrae receiverName y receiverEmail cuando el adquiriente existe", () => {
+    const result = parseAcquirerResponse(ACQUIRER_RESPONSE_FOUND);
+    expect(result.receiverName).toBe("EMPRESA XYZ SAS");
+    expect(result.receiverEmail).toBe("facturacion@empresa.com");
+  });
+
+  it("extrae statusCode y message", () => {
+    const result = parseAcquirerResponse(ACQUIRER_RESPONSE_FOUND);
+    expect(result.statusCode).toBe("00");
+    expect(result.message).toBe("Operación exitosa");
+  });
+
+  it("retorna campos vacíos cuando el adquiriente no existe", () => {
+    const result = parseAcquirerResponse(ACQUIRER_RESPONSE_NOT_FOUND);
+    expect(result.receiverName).toBe("");
+    expect(result.receiverEmail).toBe("");
+    expect(result.statusCode).toBe("99");
+  });
+
+  it("incluye el rawResponse original", () => {
+    const result = parseAcquirerResponse(ACQUIRER_RESPONSE_FOUND);
+    expect(result.rawResponse).toBe(ACQUIRER_RESPONSE_FOUND);
+  });
+
+  it("lanza DianTransportError ante un SOAP Fault", () => {
+    expect(() => parseAcquirerResponse(SOAP_FAULT)).toThrow(DianTransportError);
   });
 });
 
