@@ -51,3 +51,11 @@ pnpm-debug.log*
 *.egg
 sdist/
 wheels/
+
+# Claude Code - local per-developer files (NOT shared)
+# CLAUDE.md, .claude/rules/ and memory-bank/ ARE committed (team context)
+.claude/settings.local.json
+.claude/projects/
+
+# AI tools - local per-developer files (NOT shared)
+# .cursor/rules/ and memory-bank/ ARE committed (team context)

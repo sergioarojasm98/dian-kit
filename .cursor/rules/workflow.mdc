@@ -1,0 +1,46 @@
+---
+description: Development workflow - plan first, execute second
+globs: ["**/*"]
+alwaysApply: true
+---
+
+# Development Workflow
+
+## Philosophy: Build Knowledge Before Executing
+
+NEVER improvise. Follow this flow:
+
+1. **Understand** - Read the full memory bank before touching code
+2. **Plan** - Propose a change plan with affected files
+3. **Validate** - Wait for user approval before implementing
+4. **Execute** - Make surgical, minimal changes
+5. **Record** - Update `active-context.md` and `task-tracker.md`
+
+## Plan Structure
+
+When presenting a plan, use this format:
+
+```
+## Plan: [descriptive name]
+
+### Context
+- Why this change is being made
+
+### Proposed Changes
+1. [file] - [create/modify/delete] - [description]
+2. ...
+
+### New Dependencies
+- [package] - [reason]
+
+### Risks
+- [risk] - [mitigation]
+
+### Estimation
+- Complexity: [low/medium/high]
+```
+
+## After Implementing
+
+- Suggest a commit message following Conventional Commits
+- Update the memory bank with what was done
