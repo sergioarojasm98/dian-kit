@@ -18,7 +18,9 @@
       }
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
@@ -31,7 +33,15 @@
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist .turbo"
   },
-  "keywords": ["dian", "ai", "openai", "anthropic", "ollama", "byok", "factura-electronica"],
+  "keywords": [
+    "dian",
+    "ai",
+    "openai",
+    "anthropic",
+    "ollama",
+    "byok",
+    "factura-electronica"
+  ],
   "author": "Sergio Rojas <dian-kit@sergioarojasm98.com>",
   "license": "MIT",
   "repository": {
@@ -41,5 +51,8 @@
   },
   "dependencies": {
     "@dian-kit/core": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

@@ -10,6 +10,33 @@
 
 ---
 
+## Inicio rápido
+
+```bash
+npm install @dian-kit/core @dian-kit/sdk-node
+# o con pnpm
+pnpm add @dian-kit/core @dian-kit/sdk-node
+```
+
+```typescript
+import { DianKit } from "@dian-kit/sdk-node";
+import { readFileSync } from "node:fs";
+
+const kit = new DianKit({
+  certificate: readFileSync("./empresa.p12"),
+  certificatePassword: "cert-password",
+  supplier: { /* datos del emisor */ },
+  software: { id: "abc-123", pin: "12345", providerNit: "900123456", providerName: "Mi Empresa SAS" },
+  credentials: { nit: "900123456", password: "dian-password" },
+  environment: "2", // sandbox
+  numbering: { /* resolución de numeración */ },
+});
+
+const invoice = await kit.createInvoice({ id: "SETP990000001", issueDate: new Date(), issueTime: new Date(), customer: { /* ... */ }, lines: [{ /* ... */ }], taxTotals: [{ /* ... */ }], legalMonetaryTotal: { /* ... */ }, paymentMeans: { paymentForm: "1", paymentMethod: "10" } });
+const response = await kit.send(invoice);
+console.log(response.isValid); // true
+```
+
 ## Instalación en 30 segundos
 
 ```bash
@@ -141,6 +168,10 @@ dian-kit explain <error-code>          # Explicar error DIAN en español
 - Las claves privadas **nunca** aparecen en logs ni mensajes de error
 - `dian-kit init` agrega `.diankit/` a `.gitignore` automáticamente
 - **dian-kit no envía ningún dato a servidores propios** — toda comunicación es directamente con la DIAN
+- Validación de todos los inputs con **Zod** antes de generar XML o contactar la DIAN
+- Allowlist de endpoints DIAN — solo se conecta a dominios oficiales de la DIAN
+- Análisis estático de seguridad (SAST) con **CodeQL** en cada push
+- Auditoría de dependencias automatizada en CI
 
 ## Contribuir
 
@@ -157,11 +188,11 @@ pnpm test
 ## Roadmap público
 
 - [x] Setup monorepo (pnpm + Turborepo)
-- [ ] Core: generación XML UBL 2.1 (POS + Factura)
-- [ ] Core: firma digital XAdES-BES
-- [ ] Core: cálculo CUFE/CUDE
-- [ ] Core: cliente API DIAN (sandbox + producción)
-- [ ] SDK Node.js con tipos completos
+- [x] Core: generación XML UBL 2.1 (POS + Factura)
+- [x] Core: firma digital XAdES-EPES
+- [x] Core: cálculo CUFE/CUDE
+- [x] Core: cliente API DIAN (sandbox + producción)
+- [x] SDK Node.js con tipos completos
 - [ ] CLI interactivo
 - [ ] Capa de IA (BYOK)
 - [ ] Plugin WhatsApp multi-tenant

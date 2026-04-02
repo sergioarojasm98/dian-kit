@@ -18,7 +18,9 @@
       }
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
@@ -41,5 +43,8 @@
     "@dian-kit/core": "workspace:*",
     "@dian-kit/sdk-node": "workspace:*",
     "@dian-kit/ai": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

@@ -18,7 +18,9 @@
       }
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
@@ -32,7 +34,14 @@
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist .turbo"
   },
-  "keywords": ["dian", "sdk", "typescript", "nodejs", "factura-electronica", "colombia"],
+  "keywords": [
+    "dian",
+    "sdk",
+    "typescript",
+    "nodejs",
+    "factura-electronica",
+    "colombia"
+  ],
   "author": "Sergio Rojas <dian-kit@sergioarojasm98.com>",
   "license": "MIT",
   "repository": {
@@ -42,5 +51,8 @@
   },
   "dependencies": {
     "@dian-kit/core": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

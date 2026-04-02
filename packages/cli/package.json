@@ -21,7 +21,9 @@
       }
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
@@ -34,7 +36,13 @@
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist .turbo"
   },
-  "keywords": ["dian", "cli", "factura-electronica", "colombia", "pos"],
+  "keywords": [
+    "dian",
+    "cli",
+    "factura-electronica",
+    "colombia",
+    "pos"
+  ],
   "author": "Sergio Rojas <dian-kit@sergioarojasm98.com>",
   "license": "MIT",
   "repository": {
@@ -45,5 +53,8 @@
   "dependencies": {
     "@dian-kit/core": "workspace:*",
     "@dian-kit/sdk-node": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
