@@ -8,7 +8,9 @@
 | T-011 | Implement AI layer (parseInvoice, explainError) | medium | large | `packages/ai/src/index.ts` only exports VERSION |
 | T-012 | Implement Python SDK | medium | large | `packages/sdk-python/dian_kit/__init__.py` only has version |
 | T-013 | Implement WhatsApp plugin | low | large | `plugins/whatsapp/` has package.json but no source |
-| T-014 | Add integration tests against DIAN sandbox | high | medium | `tests/integration/` is empty |
+| T-014 | ~~Add integration tests against DIAN sandbox~~ | ~~high~~ | ~~medium~~ | Scaffold created (M4), needs real credentials to run |
+| T-018 | Monitor xadesjs for security issues or alternatives | low | ongoing | Only JS option for XAdES-EPES, unmaintained since 2023 |
+| T-019 | Add JSDoc comments to public API surface | medium | medium | SDK users need inline docs for DX |
 | T-015 | Write usage examples | medium | small | All `examples/` dirs contain only `.gitkeep` |
 | T-016 | Add Nomina Electronica support | low | large | Listed in roadmap, not started |
 | T-017 | CI trigger: enable on push/PR (currently workflow_dispatch only) | medium | small | `.github/workflows/ci.yml` triggers only on `workflow_dispatch` |
@@ -44,6 +46,7 @@
 | Item | Reason for Postponement | Impact if Not Resolved |
 |------|------------------------|----------------------|
 | CI only triggers on workflow_dispatch | Initial setup phase | PRs are not automatically tested |
-| No integration tests | Requires DIAN sandbox credentials | Cannot verify end-to-end correctness |
+| Integration test scaffold needs credentials | Requires DIAN sandbox access | Cannot verify end-to-end correctness |
 | Empty examples directory | Focus was on core implementation | New users lack onboarding material |
 | Python SDK is a stub | TypeScript SDK prioritized first | Python users have no usable package |
+| xadesjs unmaintained | Only JS option for XAdES-EPES | If CVE found, no upstream fix available |
