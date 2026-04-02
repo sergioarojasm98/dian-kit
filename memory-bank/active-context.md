@@ -28,6 +28,7 @@
 - [x] Security: CodeQL SAST workflow (M2)
 - [x] Security: rawResponse truncation in errors (M3)
 - [x] Security: Integration test scaffold for DIAN sandbox (M4)
+- [x] JSDoc: Complete documentation across all 28 source files (L3)
 
 ### In Progress
 
