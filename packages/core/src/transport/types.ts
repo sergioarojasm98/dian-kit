@@ -146,16 +146,35 @@ export interface DianNumberingRangeResponse {
 }
 
 /**
+ * Maximum length for rawResponse stored in DianTransportError.
+ * Full response content is available via debug logging at the call site.
+ */
+const MAX_RAW_RESPONSE_LENGTH = 1000;
+
+/**
  * Error lanzado cuando hay un fallo de transporte con el servicio DIAN
  * (HTTP, red, timeout) o cuando DIAN retorna un SOAP Fault.
+ *
+ * NOTE: rawResponse is truncated to {@link MAX_RAW_RESPONSE_LENGTH} characters
+ * to prevent sensitive data leakage in logs and error reports.
+ * Enable debug logging at the call site to capture the full response.
  */
 export class DianTransportError extends Error {
+  public readonly rawResponse?: string;
+
   constructor(
     message: string,
     public readonly statusCode?: number,
-    public readonly rawResponse?: string,
+    rawResponse?: string,
   ) {
     super(`[DIAN-KIT] ${message}`);
     this.name = "DianTransportError";
+
+    if (rawResponse != null) {
+      this.rawResponse =
+        rawResponse.length > MAX_RAW_RESPONSE_LENGTH
+          ? `${rawResponse.slice(0, MAX_RAW_RESPONSE_LENGTH)}... [truncated, ${rawResponse.length} chars total]`
+          : rawResponse;
+    }
   }
 }

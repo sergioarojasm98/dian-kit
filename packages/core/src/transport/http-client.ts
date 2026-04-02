@@ -1,5 +1,28 @@
 import { DianTransportError } from "./types.js";
 
+/**
+ * Allowlist of trusted DIAN hostnames.
+ * Only official DIAN SOAP endpoints are permitted to prevent
+ * accidental or malicious redirection to non-DIAN servers.
+ */
+const ALLOWED_DIAN_HOSTS = [
+  "vpfe.dian.gov.co",
+  "vpfe-hab.dian.gov.co",
+];
+
+/**
+ * Validates that the target URL belongs to an official DIAN endpoint.
+ * Throws DianTransportError if the hostname is not in the allowlist.
+ */
+function validateEndpoint(url: string): void {
+  const { hostname } = new URL(url);
+  if (!ALLOWED_DIAN_HOSTS.includes(hostname)) {
+    throw new DianTransportError(
+      `Untrusted DIAN endpoint: ${hostname}. Only official DIAN hosts are allowed.`,
+    );
+  }
+}
+
 export interface PostSoapOptions {
   url: string;
   /** SOAPAction — se incluye en el Content-Type (SOAP 1.2) */
@@ -18,9 +41,12 @@ export interface PostSoapOptions {
  *
  * SEGURIDAD: Esta función NO loguea el body del request (contiene credenciales).
  * Solo loguea la URL y el SOAPAction en caso de error.
+ * SEGURIDAD: Validates the target hostname against an allowlist before connecting.
  */
 export async function postSoap(options: PostSoapOptions): Promise<string> {
   const { url, soapAction, body, timeoutMs } = options;
+
+  validateEndpoint(url);
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);

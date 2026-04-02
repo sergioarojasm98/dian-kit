@@ -26,7 +26,7 @@
     "dev": "tsup --watch",
     "test": "vitest run",
     "test:unit": "vitest run --dir tests/unit",
-    "test:integration": "vitest run --dir tests/integration",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "lint": "biome check src/",
     "lint:fix": "biome check --write src/",
     "format": "biome format --write src/",
