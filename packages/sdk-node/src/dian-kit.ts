@@ -1,4 +1,5 @@
 import {
+  DianDocumentSchema,
   DocumentType,
   OperationType,
   buildCreditNoteXml,
@@ -225,6 +226,9 @@ export class DianKit {
   /**
    * Assembles a DianDocument by merging per-document input with the
    * emitter's configuration (supplier, software, numbering, environment).
+   *
+   * Validates the assembled document against the Zod schema before returning.
+   * Throws a ZodError with actionable messages if validation fails.
    */
   private assembleDocument(
     input: InvoiceInput | CreditNoteInput | DebitNoteInput,
@@ -235,7 +239,7 @@ export class DianKit {
       discrepancyResponse?: DianDocument["discrepancyResponse"];
     },
   ): DianDocument {
-    return {
+    const raw = {
       documentType: overrides.documentType,
       operationType: overrides.operationType,
       environment: this.config.environment,
@@ -256,6 +260,11 @@ export class DianKit {
       billingReference: overrides.billingReference,
       discrepancyResponse: overrides.discrepancyResponse,
     };
+
+    // Validate the assembled document against the Zod schema.
+    // Throws ZodError with detailed field-level messages on invalid input,
+    // preventing malformed data from reaching XML generation or DIAN.
+    return DianDocumentSchema.parse(raw) as DianDocument;
   }
 
   /**

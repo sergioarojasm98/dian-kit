@@ -123,6 +123,8 @@ const testSupplier: Party = {
       cityName: "Bogotá, D.C.",
       departmentCode: "11",
       departmentName: "Bogotá",
+      countryCode: "CO",
+      countryName: "Colombia",
     },
   },
   address: {
@@ -131,6 +133,8 @@ const testSupplier: Party = {
     cityName: "Bogotá, D.C.",
     departmentCode: "11",
     departmentName: "Bogotá",
+    countryCode: "CO",
+    countryName: "Colombia",
   },
   email: "contacto@estilototal.co",
 };
@@ -147,11 +151,13 @@ const testCustomer: Party = {
     taxScheme: { code: TaxCode.NO_APLICA, name: "No Aplica" },
   },
   address: {
-    street: "",
+    street: "N/A",
     cityCode: "11001",
     cityName: "Bogotá, D.C.",
     departmentCode: "11",
     departmentName: "Bogotá",
+    countryCode: "CO",
+    countryName: "Colombia",
   },
 };
 
@@ -277,8 +283,8 @@ describe("DianKit", () => {
       expect(doc.operationType).toBe(OperationType.ESTANDAR);
       expect(doc.environment).toBe(Environment.HABILITACION);
       expect(doc.id).toBe("SETP990000001");
-      expect(doc.supplier).toBe(testSupplier);
-      expect(doc.customer).toBe(testCustomer);
+      expect(doc.supplier).toEqual(testSupplier);
+      expect(doc.customer).toEqual(testCustomer);
     });
 
     it("computes SoftwareSecurityCode with software.id, software.pin, and document id", async () => {
