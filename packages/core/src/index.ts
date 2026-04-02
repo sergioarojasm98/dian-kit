@@ -5,6 +5,7 @@
  * XML/UBL 2.1 generation, CUFE/CUDE calculation, digital signature support.
  */
 
+/** Current version of the @dian-kit/core package */
 export const VERSION = "0.0.1";
 
 // Types

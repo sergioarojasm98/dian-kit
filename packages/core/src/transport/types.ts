@@ -1,167 +1,342 @@
 import type { DianSoapMethod } from "../constants/dian-endpoints.js";
 import type { EnvironmentValue } from "../constants/document-types.js";
 
+/**
+ * Re-exported environment value type for transport consumers.
+ *
+ * @see {@link EnvironmentValue}
+ */
 export type { EnvironmentValue };
 
+/**
+ * Union type of all DIAN SOAP method name literals (e.g., `"SendBillSync"`, `"GetStatus"`).
+ * Derived from the {@link DianSoapMethod} constant object.
+ *
+ * @see {@link DianSoapMethod}
+ */
 export type DianSoapMethodValue = (typeof DianSoapMethod)[keyof typeof DianSoapMethod];
 
-/** Credenciales WS-Security UsernameToken para el servicio DIAN */
+/**
+ * WS-Security UsernameToken credentials required to authenticate with the
+ * DIAN electronic invoicing web service (WcfDianCustomerServices).
+ *
+ * These credentials are issued when a software is registered in the DIAN portal.
+ * The password is transmitted as plain text inside the SOAP header, but the
+ * connection itself is secured via TLS.
+ *
+ * @see {@link https://vpfe.dian.gov.co/WcfDianCustomerServices.svc | DIAN WSDL}
+ */
 export interface DianCredentials {
-  /** NIT del emisor (sin dígito de verificación, sin guiones) */
+  /** Supplier NIT without verification digit or dashes (e.g., `"900123456"`) */
   nit: string;
-  /** Contraseña del software registrado en DIAN */
+  /** Software password registered in the DIAN portal */
   password: string;
 }
 
-/** Opciones para enviar un documento a DIAN */
+/**
+ * Options for sending an electronic document (invoice, credit note, debit note)
+ * to the DIAN web service.
+ *
+ * The signed XML is automatically ZIP-compressed, Base64-encoded, and wrapped
+ * in a SOAP envelope before transmission.
+ *
+ * @example
+ * ```typescript
+ * const options: SendBillOptions = {
+ *   signedXml: '<Invoice>...</Invoice>',
+ *   supplierNit: '900123456',
+ *   documentNumber: 'SETP990000001',
+ *   credentials: { nit: '900123456', password: 'softwarePin' },
+ *   environment: Environment.HABILITACION,
+ *   method: DianSoapMethod.SEND_TEST_SET_ASYNC,
+ *   testSetId: 'abc123-test-set-id',
+ * };
+ * ```
+ *
+ * @see {@link sendBill}
+ */
 export interface SendBillOptions {
-  /** XML firmado con XAdES-EPES (string UTF-8) */
+  /** XAdES-EPES signed UBL 2.1 XML document as a UTF-8 string */
   signedXml: string;
-  /** NIT del emisor sin DV (ej: "900123456") — determina el nombre del ZIP */
+  /** Supplier NIT without verification digit (e.g., `"900123456"`) -- used for ZIP file naming */
   supplierNit: string;
-  /** Número del documento (ej: "SETP990000001") — determina el nombre del ZIP */
+  /** Document number (e.g., `"SETP990000001"`) -- used for ZIP file naming */
   documentNumber: string;
-  /** Credenciales WS-Security */
+  /** WS-Security credentials for DIAN authentication */
   credentials: DianCredentials;
-  /** Entorno DIAN: "1" = producción, "2" = habilitación/sandbox */
+  /** DIAN environment: `"1"` = production, `"2"` = sandbox (habilitacion) */
   environment: EnvironmentValue;
   /**
-   * Método SOAP a usar.
-   * - `SendBillSync` — producción, respuesta inmediata (default)
-   * - `SendBillAsync` — producción, respuesta diferida
-   * - `SendTestSetAsync` — sandbox, requiere `testSetId`
+   * SOAP method to invoke on the DIAN service.
+   * - `"SendBillSync"` -- production, synchronous response (default)
+   * - `"SendBillAsync"` -- production, deferred response
+   * - `"SendTestSetAsync"` -- sandbox only, requires {@link testSetId}
    */
   method?: DianSoapMethodValue;
   /**
-   * ID del set de pruebas asignado por DIAN.
-   * Requerido cuando `method === "SendTestSetAsync"`.
+   * Test set ID assigned by DIAN during the software qualification process.
+   * Required when `method` is `"SendTestSetAsync"`.
    */
   testSetId?: string;
-  /** Timeout HTTP en milisegundos (default: 30_000) */
+  /** HTTP timeout in milliseconds (default: `30_000`) */
   timeoutMs?: number;
 }
 
-/** Opciones para consultar el estado de un documento */
+/**
+ * Options for querying the processing status of a previously submitted document
+ * via `GetStatus` or `GetStatusZip`.
+ *
+ * @example
+ * ```typescript
+ * const options: GetStatusOptions = {
+ *   trackId: 'b4f7c2a1-3e5d-4f8a-9b2c-1d6e8f0a3c5b',
+ *   credentials: { nit: '900123456', password: 'softwarePin' },
+ *   environment: Environment.PRODUCCION,
+ * };
+ * ```
+ *
+ * @see {@link getStatus}
+ * @see {@link getStatusZip}
+ */
 export interface GetStatusOptions {
-  /** CUFE o CUDE del documento */
+  /** CUFE (invoice hash) or CUDE (credit/debit note hash) of the document to query */
   trackId: string;
-  /** Credenciales WS-Security */
+  /** WS-Security credentials for DIAN authentication */
   credentials: DianCredentials;
-  /** Entorno DIAN */
+  /** DIAN environment: `"1"` = production, `"2"` = sandbox */
   environment: EnvironmentValue;
-  /** Timeout HTTP en milisegundos (default: 30_000) */
+  /** HTTP timeout in milliseconds (default: `30_000`) */
   timeoutMs?: number;
 }
 
-/** Opciones para consultar rangos de numeración */
+/**
+ * Options for querying authorized numbering ranges (resolution ranges) from DIAN
+ * via the `GetNumberingRange` SOAP method.
+ *
+ * Numbering ranges define the prefixes and number sequences a supplier is
+ * authorized to use for electronic invoicing.
+ *
+ * @example
+ * ```typescript
+ * const options: GetNumberingRangeOptions = {
+ *   accountCode: '900123456',
+ *   accountCodeT: '900654321',
+ *   softwareCode: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+ *   credentials: { nit: '900123456', password: 'softwarePin' },
+ *   environment: Environment.PRODUCCION,
+ * };
+ * ```
+ *
+ * @see {@link getNumberingRange}
+ */
 export interface GetNumberingRangeOptions {
-  /** NIT del emisor (sin DV) */
+  /** Supplier NIT without verification digit (e.g., `"900123456"`) */
   accountCode: string;
-  /** NIT del proveedor tecnológico (sin DV) */
+  /** Technology provider NIT without verification digit */
   accountCodeT: string;
-  /** ID del software registrado en DIAN */
+  /** Software ID registered in the DIAN portal (UUID format) */
   softwareCode: string;
-  /** Credenciales WS-Security */
+  /** WS-Security credentials for DIAN authentication */
   credentials: DianCredentials;
-  /** Entorno DIAN */
+  /** DIAN environment: `"1"` = production, `"2"` = sandbox */
   environment: EnvironmentValue;
-  /** Timeout HTTP en milisegundos (default: 30_000) */
+  /** HTTP timeout in milliseconds (default: `30_000`) */
   timeoutMs?: number;
 }
 
-/** Opciones para consultar datos de un adquiriente (comprador) */
+/**
+ * Options for querying acquirer (buyer) information from the DIAN registry
+ * via the `GetAcquirer` SOAP method.
+ *
+ * Useful for auto-completing buyer details (legal name, registered email)
+ * when creating an invoice.
+ *
+ * @example
+ * ```typescript
+ * const options: GetAcquirerOptions = {
+ *   identificationType: '31',         // NIT
+ *   identificationNumber: '900123456',
+ *   credentials: { nit: '800456789', password: 'softwarePin' },
+ *   environment: Environment.HABILITACION,
+ * };
+ * ```
+ *
+ * @see {@link getAcquirer}
+ */
 export interface GetAcquirerOptions {
-  /** Tipo de identificación del adquiriente (ej: "31" para NIT, "13" para CC) */
+  /** Acquirer identification type code (e.g., `"31"` for NIT, `"13"` for Cedula de Ciudadania) */
   identificationType: string;
-  /** Número de identificación del adquiriente (sin DV, sin guiones) */
+  /** Acquirer identification number without verification digit or dashes */
   identificationNumber: string;
-  /** Credenciales WS-Security */
+  /** WS-Security credentials for DIAN authentication */
   credentials: DianCredentials;
-  /** Entorno DIAN */
+  /** DIAN environment: `"1"` = production, `"2"` = sandbox */
   environment: EnvironmentValue;
-  /** Timeout HTTP en milisegundos (default: 30_000) */
+  /** HTTP timeout in milliseconds (default: `30_000`) */
   timeoutMs?: number;
 }
 
-/** Respuesta de DIAN para consulta de adquiriente (GetAcquirer) */
+/**
+ * Parsed response from the DIAN `GetAcquirer` SOAP method.
+ * Contains the acquirer's registered legal name and email address.
+ *
+ * @see {@link getAcquirer}
+ */
 export interface DianAcquirerResponse {
-  /** Nombre o razón social del adquiriente registrado en DIAN */
+  /** Legal name or business name of the acquirer as registered with DIAN */
   receiverName: string;
-  /** Email del adquiriente registrado en DIAN */
+  /** Email address of the acquirer as registered with DIAN */
   receiverEmail: string;
-  /** Código de estado (ej: "00" = encontrado) */
+  /** DIAN status code (e.g., `"00"` = found, `"99"` = error) */
   statusCode: string;
-  /** Mensaje de DIAN (descripción del resultado) */
+  /** Human-readable message from DIAN describing the result */
   message: string;
-  /** Respuesta SOAP raw para debugging */
-  rawResponse: string;
-}
-
-/** Error individual de validación retornado por DIAN */
-export interface DianValidationError {
-  code: string;
-  description: string;
-}
-
-/** Respuesta de DIAN al enviar un documento (SendBillSync / SendBillAsync / SendTestSetAsync) */
-export interface DianSendResponse {
-  /** true si DIAN aceptó el documento sin errores */
-  isValid: boolean;
-  /** Código de estado DIAN (ej: "00" = éxito, "99" = error) */
-  statusCode: string;
-  /** Descripción del estado (ej: "Procesado Correctamente") */
-  statusDescription: string;
-  /** UUID/ZipKey retornado por DIAN para tracking asíncrono */
-  trackId?: string;
-  /** Errores de validación (solo si isValid = false) */
-  errors: DianValidationError[];
-  /** Respuesta SOAP raw para debugging */
-  rawResponse: string;
-}
-
-/** Respuesta de DIAN para consultas de estado (GetStatus / GetStatusZip) */
-export interface DianStatusResponse {
-  isValid: boolean;
-  statusCode: string;
-  statusDescription: string;
-  errors: DianValidationError[];
-  rawResponse: string;
-}
-
-/** Rango de numeración autorizado por DIAN */
-export interface DianNumberingRange {
-  authorizationNumber: string;
-  prefix: string;
-  fromNumber: number;
-  toNumber: number;
-  startDate: string;
-  endDate: string;
-  technicalKey: string;
-}
-
-/** Respuesta de GetNumberingRange */
-export interface DianNumberingRangeResponse {
-  ranges: DianNumberingRange[];
+  /** Raw SOAP XML response for debugging purposes */
   rawResponse: string;
 }
 
 /**
- * Maximum length for rawResponse stored in DianTransportError.
- * Full response content is available via debug logging at the call site.
+ * A single validation error returned by DIAN when a document fails validation.
+ * DIAN returns errors as strings in the format `"Code: Description"`, which are
+ * parsed into this structured representation.
+ *
+ * @example
+ * ```typescript
+ * // Typical DIAN validation error
+ * const error: DianValidationError = {
+ *   code: 'FAD06',
+ *   description: 'El CUFE informado no corresponde al esperado',
+ * };
+ * ```
+ */
+export interface DianValidationError {
+  /** DIAN error code (e.g., `"FAD06"`, `"FAD08"`) or `"DIAN_ERROR"` if unparseable */
+  code: string;
+  /** Human-readable description of the validation failure */
+  description: string;
+}
+
+/**
+ * Parsed response from DIAN after submitting a document via
+ * `SendBillSync`, `SendBillAsync`, or `SendTestSetAsync`.
+ *
+ * @see {@link sendBill}
+ */
+export interface DianSendResponse {
+  /** Whether DIAN accepted the document without validation errors */
+  isValid: boolean;
+  /** DIAN status code (e.g., `"00"` = success, `"99"` = error) */
+  statusCode: string;
+  /** Human-readable status description (e.g., `"Procesado Correctamente"`) */
+  statusDescription: string;
+  /** UUID or ZipKey returned by DIAN for asynchronous tracking; `undefined` for sync responses */
+  trackId?: string;
+  /** Validation errors (populated only when `isValid` is `false`) */
+  errors: DianValidationError[];
+  /** Raw SOAP XML response for debugging purposes */
+  rawResponse: string;
+}
+
+/**
+ * Parsed response from DIAN for document status queries via
+ * `GetStatus` (by CUFE/CUDE) or `GetStatusZip` (by ZIP batch ID).
+ *
+ * @see {@link getStatus}
+ * @see {@link getStatusZip}
+ */
+export interface DianStatusResponse {
+  /** Whether the queried document was accepted by DIAN */
+  isValid: boolean;
+  /** DIAN status code (e.g., `"00"` = accepted, `"66"` = in process, `"99"` = error) */
+  statusCode: string;
+  /** Human-readable status description from DIAN */
+  statusDescription: string;
+  /** Validation errors (populated only when `isValid` is `false`) */
+  errors: DianValidationError[];
+  /** Raw SOAP XML response for debugging purposes */
+  rawResponse: string;
+}
+
+/**
+ * A single authorized numbering range (resolution) returned by DIAN.
+ * Each range defines a prefix and numeric interval that the supplier
+ * is authorized to use for electronic document numbering.
+ *
+ * @see {@link DianNumberingRangeResponse}
+ */
+export interface DianNumberingRange {
+  /** DIAN authorization (resolution) number */
+  authorizationNumber: string;
+  /** Invoice prefix authorized by DIAN (e.g., `"SETT"`, `"FV"`) */
+  prefix: string;
+  /** Start of the authorized numbering sequence (inclusive) */
+  fromNumber: number;
+  /** End of the authorized numbering sequence (inclusive) */
+  toNumber: number;
+  /** Authorization start date (ISO 8601 format, e.g., `"2024-01-01"`) */
+  startDate: string;
+  /** Authorization end date (ISO 8601 format, e.g., `"2025-12-31"`) */
+  endDate: string;
+  /** Technical key assigned by DIAN for CUFE calculation */
+  technicalKey: string;
+}
+
+/**
+ * Parsed response from the DIAN `GetNumberingRange` SOAP method.
+ * Contains all authorized numbering ranges for the queried software.
+ *
+ * @see {@link getNumberingRange}
+ */
+export interface DianNumberingRangeResponse {
+  /** List of authorized numbering ranges; empty if none are active */
+  ranges: DianNumberingRange[];
+  /** Raw SOAP XML response for debugging purposes */
+  rawResponse: string;
+}
+
+/**
+ * Maximum number of characters stored in {@link DianTransportError.rawResponse}.
+ * Responses exceeding this limit are truncated to prevent sensitive data
+ * leakage in logs and error reporting systems. Enable debug logging at the
+ * call site to capture the full response when needed.
  */
 const MAX_RAW_RESPONSE_LENGTH = 1000;
 
 /**
- * Error lanzado cuando hay un fallo de transporte con el servicio DIAN
- * (HTTP, red, timeout) o cuando DIAN retorna un SOAP Fault.
+ * Error thrown when communication with the DIAN electronic invoicing web service
+ * fails due to network issues, HTTP errors, timeouts, or when DIAN returns a
+ * SOAP Fault in its response.
  *
- * NOTE: rawResponse is truncated to {@link MAX_RAW_RESPONSE_LENGTH} characters
- * to prevent sensitive data leakage in logs and error reports.
- * Enable debug logging at the call site to capture the full response.
+ * The `rawResponse` property is automatically truncated to
+ * {@link MAX_RAW_RESPONSE_LENGTH} characters to prevent sensitive data leakage.
+ *
+ * @example
+ * ```typescript
+ * try {
+ *   await sendBill(options);
+ * } catch (error) {
+ *   if (error instanceof DianTransportError) {
+ *     console.error('DIAN error:', error.message);
+ *     console.error('HTTP status:', error.statusCode);
+ *     console.error('Raw response:', error.rawResponse);
+ *   }
+ * }
+ * ```
+ *
+ * @see {@link sendBill}
+ * @see {@link getStatus}
  */
 export class DianTransportError extends Error {
+  /** Truncated raw SOAP XML response body, if available; `undefined` for network/timeout errors */
   public readonly rawResponse?: string;
 
+  /**
+   * Creates a new DianTransportError instance.
+   *
+   * @param message - Human-readable error description (prefixed with `[DIAN-KIT]`)
+   * @param statusCode - HTTP status code returned by the DIAN server, if applicable
+   * @param rawResponse - Raw SOAP XML response body; automatically truncated if too long
+   */
   constructor(
     message: string,
     public readonly statusCode?: number,

@@ -1,6 +1,21 @@
 import { createHash } from "node:crypto";
 import forge from "node-forge";
 
+/**
+ * Parsed certificate data extracted from a PKCS#12 container, containing all
+ * the cryptographic material and metadata required for XAdES-EPES digital
+ * signing of DIAN electronic invoicing documents.
+ *
+ * @remarks
+ * The `privateKeyPem` field contains the RSA private key in PEM format.
+ * It must be handled with care: never log, persist to disk, or transmit
+ * this value outside the signing process. The `certDigestBase64` is a
+ * SHA-256 fingerprint used in the `<DigestValue>` element of the
+ * XAdES `SigningCertificate` reference.
+ *
+ * @see {@link loadP12} for how to obtain a `CertificateData` instance
+ * @see {@link signXml} for consuming this data in the signing workflow
+ */
 export interface CertificateData {
   /** PEM-encoded private key */
   privateKeyPem: string;
@@ -23,11 +38,51 @@ export interface CertificateData {
 }
 
 /**
- * Loads a PKCS#12 (.p12 / .pfx) file and extracts the private key,
- * certificate, and metadata needed for XAdES-BES signing.
+ * Loads a PKCS#12 (.p12/.pfx) certificate file and extracts the private key,
+ * X.509 certificate, and associated metadata needed for XAdES-EPES digital
+ * signing of Colombian electronic invoicing documents.
  *
- * SECURITY: The private key is held in memory only during the signing
- * operation. It is NEVER logged, serialized, or transmitted.
+ * The function decodes the PKCS#12 binary container, locates the shrouded
+ * key bag and certificate bag, and returns all fields required by the
+ * {@link signXml} function: PEM keys, DER-encoded certificate, SHA-256
+ * digest, issuer name, serial number, and validity dates.
+ *
+ * @param p12Buffer - Raw binary content of the .p12/.pfx file, typically read
+ *   with `fs.readFileSync()`. Must be a valid PKCS#12 DER-encoded container.
+ * @param password - Password to decrypt the PKCS#12 container. This is the
+ *   password assigned when the certificate was exported or enrolled with the
+ *   DIAN certification authority.
+ * @returns Parsed {@link CertificateData} with private key, public cert, issuer,
+ *   serial number, subject name, and validity period
+ * @throws {Error} If no private key is found in the .p12 file (wrong password
+ *   or corrupted file)
+ * @throws {Error} If no X.509 certificate is found in the .p12 file
+ *
+ * @remarks
+ * **Security:** The private key is held in memory only for the duration of
+ * the signing operation. It is NEVER logged, serialized to disk, or
+ * transmitted over the network. Callers should avoid storing the returned
+ * `privateKeyPem` in any persistent storage.
+ *
+ * The certificate digest is computed using SHA-256 over the DER encoding,
+ * matching the algorithm required by DIAN's XAdES-EPES signature profile.
+ *
+ * @example
+ * ```typescript
+ * import fs from 'node:fs';
+ * import { loadP12 } from '@dian-kit/core';
+ *
+ * const p12Buffer = fs.readFileSync('./empresa.p12');
+ * const cert = loadP12(p12Buffer, 'my-password');
+ *
+ * console.log(cert.subjectName);   // "MI EMPRESA S.A.S."
+ * console.log(cert.issuerName);    // "CN=AC DIAN, O=DIAN, C=CO"
+ * console.log(cert.serialNumber);  // "1234567890"
+ * ```
+ *
+ * @see {@link CertificateData} for the shape of the returned object
+ * @see {@link signXml} for using the certificate to sign XML documents
+ * @see {@link https://www.dian.gov.co/ | DIAN} for certificate enrollment
  */
 export function loadP12(p12Buffer: Buffer, password: string): CertificateData {
   const p12Der = forge.util.decode64(p12Buffer.toString("base64"));
@@ -86,8 +141,35 @@ export function loadP12(p12Buffer: Buffer, password: string): CertificateData {
 }
 
 /**
- * Generates a self-signed test certificate and .p12 for development/testing.
- * NOT for production use.
+ * Generates a self-signed PKCS#12 (.p12) certificate for development and
+ * testing purposes. The certificate uses a 2048-bit RSA key pair, is valid
+ * for one year from the current date, and is signed with SHA-256.
+ *
+ * **This certificate is NOT valid for production use with DIAN.** Production
+ * electronic invoicing requires a certificate issued by a DIAN-authorized
+ * certification authority. This function is intended only for local
+ * development, unit tests, and sandbox (habilitacion) testing.
+ *
+ * @param password - Password to protect the generated .p12 container. This
+ *   same password must be passed to {@link loadP12} when loading the certificate.
+ * @returns A `Buffer` containing the DER-encoded PKCS#12 file, ready to be
+ *   written to disk or passed directly to {@link loadP12}
+ *
+ * @example
+ * ```typescript
+ * import fs from 'node:fs';
+ * import { generateTestP12, loadP12 } from '@dian-kit/core';
+ *
+ * // Generate and save to disk
+ * const p12Buffer = generateTestP12('test-password');
+ * fs.writeFileSync('./test-cert.p12', p12Buffer);
+ *
+ * // Or use directly in memory
+ * const cert = loadP12(p12Buffer, 'test-password');
+ * ```
+ *
+ * @see {@link loadP12} for loading the generated certificate
+ * @see {@link https://www.dian.gov.co/ | DIAN} for obtaining production certificates
  */
 export function generateTestP12(password: string): Buffer {
   const keys = forge.pki.rsa.generateKeyPair(2048);

@@ -17,18 +17,39 @@ import type {
 import { formatAmount, formatDate, formatPercent, formatTime } from "../utils/amount.js";
 import { NS, SCHEMA_LOCATION, SCHEMA_LOCATION_CREDIT_NOTE, SCHEMA_LOCATION_DEBIT_NOTE, UBL_VERSION } from "./namespaces.js";
 
+/** Set of document type codes that produce a CreditNote XML root element */
 const CREDIT_NOTE_DOCUMENTS: ReadonlySet<string> = new Set([DocumentType.NOTA_CREDITO, DocumentType.NOTA_AJUSTE_CREDITO_DOC_EQUIV]);
+
+/** Set of document type codes that produce a DebitNote XML root element */
 const DEBIT_NOTE_DOCUMENTS: ReadonlySet<string> = new Set([DocumentType.NOTA_DEBITO, DocumentType.NOTA_AJUSTE_DEBITO_DOC_EQUIV]);
 
+/**
+ * Internal configuration that varies by document type (Invoice, CreditNote, DebitNote).
+ * Determines the XML root element name, namespace, schema location, and child element names.
+ */
 interface DocumentConfig {
+  /** Root XML element name (e.g., "Invoice", "CreditNote", "DebitNote") */
   rootName: string;
+  /** Primary namespace URI for the root element */
   ns: string;
+  /** XSD schema location string for the xsi:schemaLocation attribute */
   schemaLocation: string;
+  /** Line item element name (e.g., "InvoiceLine", "CreditNoteLine") */
   lineTag: string;
+  /** Quantity element name (e.g., "InvoicedQuantity", "CreditedQuantity") */
   quantityTag: string;
+  /** Document type code element name (e.g., "InvoiceTypeCode", "CreditNoteTypeCode") */
   typeCodeTag: string;
 }
 
+/**
+ * Resolves the XML document configuration based on the DIAN document type code.
+ * Returns the appropriate root element, namespace, schema, and tag names
+ * for Invoice, CreditNote, or DebitNote documents.
+ *
+ * @param docType - DIAN document type code (e.g., "01", "91", "92")
+ * @returns Configuration object with XML structure details for the document type
+ */
 function getDocumentConfig(docType: string): DocumentConfig {
   if (CREDIT_NOTE_DOCUMENTS.has(docType)) {
     return {
@@ -60,6 +81,14 @@ function getDocumentConfig(docType: string): DocumentConfig {
   };
 }
 
+/**
+ * Returns the DIAN ProfileID string for a given document type.
+ * The ProfileID identifies the document family (e.g., electronic invoice,
+ * credit note, POS ticket) in the UBL ProfileID element.
+ *
+ * @param docType - DIAN document type code
+ * @returns DIAN ProfileID string for the UBL document
+ */
 function profileIdForDocumentType(docType: string): string {
   switch (docType) {
     case DocumentType.POS:
@@ -77,6 +106,15 @@ function profileIdForDocumentType(docType: string): string {
   }
 }
 
+/**
+ * Adds a complete party node (AccountingSupplierParty or AccountingCustomerParty)
+ * to the XML document, including PartyName, PhysicalLocation, PartyTaxScheme,
+ * PartyLegalEntity, and Contact sub-elements.
+ *
+ * @param parent - Parent XML builder node to append the party element to
+ * @param tagName - UBL element name ("AccountingSupplierParty" or "AccountingCustomerParty")
+ * @param party - Party data containing identification, tax info, address, and contact
+ */
 function addPartyNode(
   parent: XMLBuilder,
   tagName: string,
@@ -142,6 +180,13 @@ function addPartyNode(
   }
 }
 
+/**
+ * Adds a CAC:Address element wrapped in a parent container node.
+ * Used for PhysicalLocation addresses.
+ *
+ * @param parent - Parent XML builder node (e.g., PhysicalLocation)
+ * @param address - Address data with street, city, department, and country info
+ */
 function addAddressNode(parent: XMLBuilder, address: {
   street: string;
   cityCode: string;
@@ -156,6 +201,13 @@ function addAddressNode(parent: XMLBuilder, address: {
   addAddressFields(addrNode, address);
 }
 
+/**
+ * Populates address fields (ID, CityName, PostalZone, CountrySubentity, AddressLine, Country)
+ * into an existing Address XML node. Defaults country to "CO" / "Colombia".
+ *
+ * @param addrNode - Address XML builder node to populate with fields
+ * @param address - Address data with street, city, department, and country info
+ */
 function addAddressFields(addrNode: XMLBuilder, address: {
   street: string;
   cityCode: string;
@@ -184,6 +236,14 @@ function addAddressFields(addrNode: XMLBuilder, address: {
     .txt(address.countryName ?? "Colombia");
 }
 
+/**
+ * Adds a CAC:TaxTotal element with its TaxSubtotal children to the XML document.
+ * Each subtotal includes taxable amount, tax amount, percent, and tax scheme.
+ *
+ * @param parent - Parent XML builder node to append the TaxTotal element to
+ * @param taxTotal - Tax total data with aggregated amount and subtotals
+ * @param currency - ISO 4217 currency code for amount attributes (e.g., "COP")
+ */
 function addTaxTotalNode(parent: XMLBuilder, taxTotal: TaxTotal, currency: string): void {
   const node = parent.ele(NS.CAC, "TaxTotal");
   node.ele(NS.CBC, "TaxAmount")
@@ -208,6 +268,14 @@ function addTaxTotalNode(parent: XMLBuilder, taxTotal: TaxTotal, currency: strin
   }
 }
 
+/**
+ * Adds a CAC:AllowanceCharge element for a discount or surcharge.
+ * Includes charge indicator, reason, multiplier factor, amount, and base amount.
+ *
+ * @param parent - Parent XML builder node to append the AllowanceCharge element to
+ * @param ac - Allowance/charge data with amounts and reason
+ * @param currency - ISO 4217 currency code for amount attributes
+ */
 function addAllowanceChargeNode(
   parent: XMLBuilder,
   ac: AllowanceCharge,
@@ -227,6 +295,14 @@ function addAllowanceChargeNode(
     .txt(formatAmount(ac.baseAmount));
 }
 
+/**
+ * Adds a CAC:LegalMonetaryTotal element with all required DIAN monetary amounts:
+ * line extension, tax exclusive/inclusive, allowances, charges, prepaid, and payable.
+ *
+ * @param parent - Parent XML builder node to append the LegalMonetaryTotal element to
+ * @param total - Legal monetary total data with all summary amounts
+ * @param currency - ISO 4217 currency code for amount attributes
+ */
 function addMonetaryTotalNode(
   parent: XMLBuilder,
   total: LegalMonetaryTotal,
@@ -256,6 +332,17 @@ function addMonetaryTotalNode(
     .txt(formatAmount(total.payableAmount));
 }
 
+/**
+ * Adds a line item element (InvoiceLine, CreditNoteLine, or DebitNoteLine) to the XML.
+ * Includes ID, quantity, line extension amount, allowance/charges, tax totals,
+ * item description, and price information.
+ *
+ * @param parent - Parent XML builder node to append the line element to
+ * @param line - Invoice line data with quantity, price, taxes, and description
+ * @param currency - ISO 4217 currency code for amount attributes
+ * @param lineTag - Element name ("InvoiceLine", "CreditNoteLine", or "DebitNoteLine")
+ * @param quantityTag - Quantity element name ("InvoicedQuantity", "CreditedQuantity", etc.)
+ */
 function addLineNode(
   parent: XMLBuilder,
   line: InvoiceLine,
@@ -296,6 +383,12 @@ function addLineNode(
     .txt("1.00");
 }
 
+/**
+ * Adds a CAC:PaymentMeans element with payment form, method, due date, and payment ID.
+ *
+ * @param parent - Parent XML builder node to append the PaymentMeans element to
+ * @param pm - Payment means data with form, method, and optional due date
+ */
 function addPaymentMeansNode(parent: XMLBuilder, pm: PaymentMeans): void {
   const node = parent.ele(NS.CAC, "PaymentMeans");
   node.ele(NS.CBC, "ID").txt(pm.paymentForm);
@@ -308,6 +401,16 @@ function addPaymentMeansNode(parent: XMLBuilder, pm: PaymentMeans): void {
   }
 }
 
+/**
+ * Adds the DIAN-specific UBLExtension content including InvoiceControl,
+ * InvoiceSource, SoftwareProvider, SoftwareSecurityCode,
+ * AuthorizationProvider, and QRCode elements.
+ *
+ * @param extensionContent - ExtensionContent XML builder node for the first UBLExtension
+ * @param doc - Complete DIAN document data
+ * @param softwareSecurityCode - Pre-computed SHA-384 software security code
+ * @param uuid - Pre-computed CUFE or CUDE hash for the document
+ */
 function addDianExtensions(
   extensionContent: XMLBuilder,
   doc: DianDocument,
@@ -369,6 +472,15 @@ function addDianExtensions(
   dianExt.ele(NS.STS, "QRCode").txt(buildQRCode(doc, uuid));
 }
 
+/**
+ * Builds the QR code content string for the DIAN electronic document.
+ * Includes document number, dates, party NITs, tax amounts, total, and CUFE/CUDE,
+ * followed by the DIAN catalog verification URL.
+ *
+ * @param doc - Complete DIAN document data
+ * @param uuid - Pre-computed CUFE or CUDE hash
+ * @returns Multi-line string formatted for QR code generation
+ */
 function buildQRCode(doc: DianDocument, uuid: string): string {
   const lines = [
     `NumFac: ${doc.id}`,
@@ -386,6 +498,14 @@ function buildQRCode(doc: DianDocument, uuid: string): string {
   return lines.join("\n");
 }
 
+/**
+ * Extracts the tax amount for a specific tax code from the document's tax totals.
+ * Searches through all tax total subtotals and returns the first matching amount.
+ *
+ * @param doc - Complete DIAN document data
+ * @param taxCode - DIAN tax code to search for (e.g., "01" for IVA)
+ * @returns Tax amount for the specified code, or 0 if not found
+ */
 function getTaxAmount(doc: DianDocument, taxCode: string): number {
   for (const tt of doc.taxTotals) {
     for (const sub of tt.subtotals) {
@@ -397,14 +517,29 @@ function getTaxAmount(doc: DianDocument, taxCode: string): number {
   return 0;
 }
 
+/**
+ * Result of building a DIAN UBL 2.1 XML document.
+ * Contains the generated XML string and the associated CUFE/CUDE identifier.
+ */
 export interface BuildXmlResult {
+  /** Complete UBL 2.1 XML string ready for XAdES signing */
   xml: string;
+  /** CUFE or CUDE hash identifier embedded in the document */
   uuid: string;
 }
 
 /**
- * Builds the core UBL 2.1 XML structure shared by all DIAN document types.
- * Uses `getDocumentConfig()` to select root element, namespace, and element names.
+ * Builds the core UBL 2.1 XML structure shared by all DIAN document types
+ * (Invoice, CreditNote, DebitNote). This is the internal implementation
+ * used by the public buildInvoiceXml, buildCreditNoteXml, and buildDebitNoteXml functions.
+ *
+ * Generates the complete XML tree including: UBLExtensions (DianExtensions + signature placeholder),
+ * document metadata, parties, payment means, tax totals, monetary totals, and line items.
+ *
+ * @param doc - Validated DianDocument with all document data
+ * @param uuid - Pre-computed CUFE or CUDE hash identifier
+ * @param softwareSecurityCode - Pre-computed SHA-384 software security code
+ * @returns Pretty-printed UBL 2.1 XML string
  */
 function buildDocumentXml(
   doc: DianDocument,
@@ -540,11 +675,21 @@ function buildDocumentXml(
 }
 
 /**
- * Builds a complete UBL 2.1 Invoice XML for DIAN.
- * Works for Invoice (01) and POS (20).
+ * Builds a complete UBL 2.1 Invoice XML for DIAN electronic invoicing.
+ * Supports Invoice (type "01") and POS (type "20") documents.
  *
  * The UUID (CUFE/CUDE) and SoftwareSecurityCode must be pre-computed
- * and passed in — this builder only handles XML structure.
+ * and passed in -- this builder only handles XML structure generation.
+ *
+ * @param doc - Validated DianDocument with all invoice data
+ * @param uuid - Pre-computed CUFE or CUDE hash identifier
+ * @param softwareSecurityCode - Pre-computed SHA-384 software security code
+ * @returns Complete UBL 2.1 XML string ready for XAdES-EPES signing
+ *
+ * @example
+ * ```typescript
+ * const xml = buildInvoiceXml(document, cufe, securityCode);
+ * ```
  */
 export function buildInvoiceXml(
   doc: DianDocument,
@@ -555,13 +700,23 @@ export function buildInvoiceXml(
 }
 
 /**
- * Builds a complete UBL 2.1 CreditNote XML for DIAN (type 91, 94).
+ * Builds a complete UBL 2.1 CreditNote XML for DIAN (type "91" or "94").
  *
- * Generates `<CreditNote>` root with correct namespace, `CreditNoteLine`,
+ * Generates a `<CreditNote>` root with correct namespace, `CreditNoteLine`,
  * `CreditedQuantity`, and `CreditNoteTypeCode` elements.
  *
  * The UUID (CUDE) and SoftwareSecurityCode must be pre-computed
- * and passed in — this builder only handles XML structure.
+ * and passed in -- this builder only handles XML structure generation.
+ *
+ * @param doc - Validated DianDocument with credit note data
+ * @param uuid - Pre-computed CUDE hash identifier
+ * @param softwareSecurityCode - Pre-computed SHA-384 software security code
+ * @returns Complete UBL 2.1 CreditNote XML string ready for XAdES-EPES signing
+ *
+ * @example
+ * ```typescript
+ * const xml = buildCreditNoteXml(creditNoteDoc, cude, securityCode);
+ * ```
  */
 export function buildCreditNoteXml(
   doc: DianDocument,
@@ -572,13 +727,23 @@ export function buildCreditNoteXml(
 }
 
 /**
- * Builds a complete UBL 2.1 DebitNote XML for DIAN (type 92, 93).
+ * Builds a complete UBL 2.1 DebitNote XML for DIAN (type "92" or "93").
  *
- * Generates `<DebitNote>` root with correct namespace, `DebitNoteLine`,
+ * Generates a `<DebitNote>` root with correct namespace, `DebitNoteLine`,
  * `DebitedQuantity`, and `DebitNoteTypeCode` elements.
  *
  * The UUID (CUDE) and SoftwareSecurityCode must be pre-computed
- * and passed in — this builder only handles XML structure.
+ * and passed in -- this builder only handles XML structure generation.
+ *
+ * @param doc - Validated DianDocument with debit note data
+ * @param uuid - Pre-computed CUDE hash identifier
+ * @param softwareSecurityCode - Pre-computed SHA-384 software security code
+ * @returns Complete UBL 2.1 DebitNote XML string ready for XAdES-EPES signing
+ *
+ * @example
+ * ```typescript
+ * const xml = buildDebitNoteXml(debitNoteDoc, cude, securityCode);
+ * ```
  */
 export function buildDebitNoteXml(
   doc: DianDocument,

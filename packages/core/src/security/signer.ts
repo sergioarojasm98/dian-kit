@@ -12,31 +12,70 @@ const DIAN_POLICY_URL = DianSignaturePolicy.URL;
 const DIAN_POLICY_DESCRIPTION = DianSignaturePolicy.DESCRIPTION;
 
 /**
- * Pre-computed SHA-256 hash of the DIAN signature policy PDF.
- * This avoids downloading the PDF on every signature operation.
- * If the DIAN updates the policy document, this hash must be updated.
+ * Pre-computed SHA-256 digest (base64-encoded) of the DIAN electronic
+ * invoicing signature policy PDF document. This constant avoids downloading
+ * and hashing the policy PDF on every signing operation.
+ *
+ * The hash corresponds to the policy document at
+ * {@link https://facturaelectronica.dian.gov.co/politicadefirma/v2/politicadefirmav2.pdf}.
+ *
+ * @remarks
+ * If DIAN updates their signature policy PDF, this hash must be recomputed
+ * and updated accordingly. The {@link SignXmlOptions.policyHashBase64} option
+ * allows overriding this value at runtime as a stopgap.
+ *
+ * @internal
  */
 const DIAN_POLICY_HASH_BASE64 = "dMoMvtcG5aIzgYo0tIsSQeVJBDnUnfSOfBpC8YsCctM=";
 
+/**
+ * Configuration options for the {@link signXml} function, specifying the
+ * XML document to sign, the certificate to use, and optional overrides
+ * for signature placement and policy hash.
+ *
+ * @see {@link signXml} for the signing function that consumes these options
+ * @see {@link loadP12} for obtaining the required {@link CertificateData}
+ */
 export interface SignXmlOptions {
-  /** The unsigned XML document string */
+  /** The unsigned UBL XML document string to be digitally signed */
   xml: string;
-  /** Certificate data from loadP12() */
+  /** Certificate data obtained from {@link loadP12}, containing the private
+   *  key, public certificate, and metadata required for XAdES-EPES signing */
   certificate: CertificateData;
-  /** XPath to the element where the signature should be placed.
-   *  Defaults to the second UBLExtension's ExtensionContent. */
+  /** XPath expression to the element where the signature should be placed.
+   *  Defaults to `ext:UBLExtensions/ext:UBLExtension[2]/ext:ExtensionContent`,
+   *  which is the standard DIAN location for the digital signature. */
   signatureLocation?: string;
-  /** Override the policy hash (base64) if DIAN updates the policy PDF */
+  /** Override the pre-computed DIAN policy hash (base64-encoded SHA-256).
+   *  Use this if DIAN updates their signature policy PDF before this library
+   *  is updated with the new hash. */
   policyHashBase64?: string;
 }
 
+/**
+ * Result of the {@link signXml} operation, containing the complete XML
+ * document with the XAdES-EPES digital signature embedded.
+ *
+ * @see {@link signXml} for the function that produces this result
+ */
 export interface SignXmlResult {
-  /** The signed XML document string */
+  /** The complete XML document string with the XAdES-EPES digital signature
+   *  embedded in the second UBLExtension's ExtensionContent element */
   signedXml: string;
 }
 
+/** Tracks whether the xadesjs/xmldsigjs crypto engine has been initialized */
 let engineInitialized = false;
 
+/**
+ * Initializes the xadesjs XML signing engine with Node.js dependencies.
+ * This is a one-time setup that configures the DOM parser, XML serializer,
+ * XPath engine, and the WebCrypto provider for xadesjs.
+ *
+ * The function is idempotent -- subsequent calls after the first are no-ops.
+ *
+ * @internal
+ */
 function initEngine(): void {
   if (engineInitialized) return;
 
@@ -52,9 +91,24 @@ function initEngine(): void {
 }
 
 /**
- * Converts a PEM private key (PKCS#1 or PKCS#8) to a CryptoKey.
- * node-forge exports PKCS#1 (RSA PRIVATE KEY), but WebCrypto requires PKCS#8.
- * We use node-forge to convert between formats when needed.
+ * Converts a PEM-encoded RSA private key to a WebCrypto `CryptoKey` for use
+ * with the RSASSA-PKCS1-v1_5 signing algorithm (SHA-256 digest).
+ *
+ * Handles both PEM formats:
+ * - **PKCS#1** (`BEGIN RSA PRIVATE KEY`): Converted to PKCS#8 via node-forge
+ *   before importing, since the WebCrypto API only accepts PKCS#8.
+ * - **PKCS#8** (`BEGIN PRIVATE KEY`): Imported directly.
+ *
+ * @param pem - The PEM-encoded private key string, in either PKCS#1 or PKCS#8 format
+ * @returns A `CryptoKey` configured for RSASSA-PKCS1-v1_5 signing with SHA-256
+ * @throws {Error} If the PEM format is invalid or the key cannot be imported
+ *
+ * @remarks
+ * The imported `CryptoKey` is created with `extractable: false` and limited
+ * to the `["sign"]` usage, ensuring it cannot be re-exported from WebCrypto.
+ * The private key material is never logged or persisted.
+ *
+ * @internal
  */
 async function importPrivateKey(pem: string): Promise<CryptoKey> {
   let pkcs8Der: ArrayBuffer;
@@ -87,18 +141,65 @@ async function importPrivateKey(pem: string): Promise<CryptoKey> {
 }
 
 /**
- * Signs an XML document with XAdES-BES/EPES using the DIAN signature policy.
+ * Signs a UBL XML document with an XAdES-EPES digital signature conforming
+ * to DIAN's Anexo Tecnico requirements for Colombian electronic invoicing.
  *
- * Signature structure follows the DIAN Anexo Técnico requirements:
- * - 3 References: document (enveloped), KeyInfo, SignedProperties
- * - Canonicalization: Inclusive C14N
- * - Algorithms: RSA-SHA256 for signature, SHA-256 for digests
- * - XAdES elements: SigningTime, SigningCertificate, SignaturePolicyIdentifier
- * - SignerRole: "supplier"
- * - Placement: ext:UBLExtensions/ext:UBLExtension[2]/ext:ExtensionContent
+ * The produced signature includes:
+ * - **3 References:** the document itself (enveloped transform), KeyInfo,
+ *   and SignedProperties
+ * - **Canonicalization:** Inclusive C14N (Canonical XML 1.0)
+ * - **Algorithms:** RSASSA-PKCS1-v1_5 with SHA-256 for signing, SHA-256
+ *   for all digest computations
+ * - **XAdES elements:** SigningTime, SigningCertificate (with SHA-256 digest
+ *   and issuer serial), SignaturePolicyIdentifier (DIAN policy URL and hash)
+ * - **SignerRole:** "supplier" (as required by DIAN)
+ * - **ProductionPlace:** Colombia
+ * - **Placement:** The signature is inserted into
+ *   `ext:UBLExtensions/ext:UBLExtension[2]/ext:ExtensionContent`
  *
- * SECURITY: The private key is used only for the signing operation and
- * is never logged, transmitted, or stored beyond the function scope.
+ * @param options - Configuration specifying the XML to sign, the certificate
+ *   to use, and optional overrides. See {@link SignXmlOptions} for details.
+ * @returns A {@link SignXmlResult} containing the fully signed XML string
+ *   with the XAdES-EPES signature embedded
+ * @throws {Error} If the signature generation fails or produces an empty result
+ * @throws {Error} If the private key cannot be imported (invalid PEM format)
+ *
+ * @remarks
+ * **Security:** The private key is imported as a non-extractable WebCrypto
+ * `CryptoKey` limited to `["sign"]` usage. It is used only within this
+ * function's scope and is never logged, serialized, transmitted, or stored.
+ *
+ * **Algorithm details:**
+ * - Signature algorithm: RSASSA-PKCS1-v1_5 (2048-bit RSA minimum)
+ * - Digest algorithm: SHA-256 (for all references and certificate digest)
+ * - Policy hash: SHA-256 of the DIAN signature policy PDF
+ * - Key wrapping: PKCS#1 keys are converted to PKCS#8 before import
+ *
+ * **DIAN compliance:** The signature structure, algorithm choices, and XAdES
+ * elements are configured to match the requirements in DIAN's Anexo Tecnico
+ * for facturacion electronica. The policy identifier points to DIAN's
+ * official signature policy PDF.
+ *
+ * @example
+ * ```typescript
+ * import fs from 'node:fs';
+ * import { loadP12, signXml } from '@dian-kit/core';
+ *
+ * const cert = loadP12(fs.readFileSync('./empresa.p12'), 'my-password');
+ * const unsignedXml = fs.readFileSync('./invoice.xml', 'utf-8');
+ *
+ * const { signedXml } = await signXml({
+ *   xml: unsignedXml,
+ *   certificate: cert,
+ * });
+ *
+ * fs.writeFileSync('./invoice-signed.xml', signedXml);
+ * ```
+ *
+ * @see {@link loadP12} for obtaining the certificate data
+ * @see {@link SignXmlOptions} for all available configuration options
+ * @see {@link SignXmlResult} for the return type
+ * @see {@link https://www.dian.gov.co/ | DIAN Anexo Tecnico} for the full specification
  */
 export async function signXml(options: SignXmlOptions): Promise<SignXmlResult> {
   initEngine();
@@ -190,9 +291,19 @@ export async function signXml(options: SignXmlOptions): Promise<SignXmlResult> {
 }
 
 /**
- * Finds the second UBLExtension's ExtensionContent where the signature goes.
- * Uses namespace-aware traversal. Types are kept generic since xmldom
- * provides its own DOM implementation.
+ * Locates the second `UBLExtension`'s `ExtensionContent` element within the
+ * XML document, which is the DIAN-mandated location for the XAdES digital
+ * signature.
+ *
+ * The function uses namespace-aware DOM traversal with the UBL Common
+ * Extension Components namespace (`urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2`)
+ * to reliably find the target element regardless of namespace prefixes.
+ *
+ * @param doc - The parsed XML DOM document to search within
+ * @returns The `ExtensionContent` element of the second `UBLExtension`,
+ *   or `null` if the document does not contain at least two UBL extensions
+ *
+ * @internal
  */
 function findSignatureExtensionContent(doc: globalThis.Document): globalThis.Element | null {
   const nsExt = "urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2";

@@ -25,9 +25,17 @@ import type {
 import { DianTransportError } from "./types.js";
 import { createXmlZip, getZipFileName } from "./zipper.js";
 
+/** Default HTTP timeout in milliseconds for all DIAN SOAP requests */
 const DEFAULT_TIMEOUT_MS = 30_000;
 
-/** Retorna la URL del servicio según el entorno */
+/**
+ * Resolves the DIAN WCF service URL based on the target environment.
+ *
+ * @param environment - Environment value (`"1"` = production, `"2"` = sandbox)
+ * @returns The full DIAN WCF service endpoint URL
+ *
+ * @see {@link DianEndpoint}
+ */
 function getServiceUrl(environment: string): string {
   return environment === Environment.PRODUCCION
     ? DianEndpoint.PRODUCTION.SERVICE
@@ -35,27 +43,37 @@ function getServiceUrl(environment: string): string {
 }
 
 /**
- * Envía un documento electrónico al servicio DIAN.
+ * Sends a signed electronic document (invoice, credit note, debit note) to the
+ * DIAN web service for validation and acceptance.
  *
- * Flujo completo:
- * 1. XML firmado → ZIP (fflate)
- * 2. ZIP → Base64
- * 3. Base64 + credenciales → SOAP envelope
- * 4. POST al endpoint DIAN
- * 5. Parsear respuesta → DianSendResponse
+ * Performs the complete submission pipeline:
+ * 1. ZIP-compresses the signed XML using DIAN naming conventions
+ * 2. Base64-encodes the ZIP buffer
+ * 3. Wraps the payload in a SOAP 1.2 envelope with WS-Security credentials
+ * 4. POSTs the envelope to the appropriate DIAN WCF endpoint
+ * 5. Parses the SOAP response into a structured {@link DianSendResponse}
+ *
+ * @param options - Configuration including the signed XML, credentials, environment, and SOAP method
+ * @returns Parsed DIAN response with validation status, trackId, and any errors
+ * @throws {DianTransportError} If `method` is `SendTestSetAsync` but `testSetId` is missing
+ * @throws {DianTransportError} If the HTTP request fails, times out, or DIAN returns a SOAP Fault
  *
  * @example
  * ```typescript
  * const result = await sendBill({
  *   signedXml,
- *   supplierNit: "900123456",
- *   documentNumber: "SETP990000001",
- *   credentials: { nit: "900123456", password: "softwarePin" },
+ *   supplierNit: '900123456',
+ *   documentNumber: 'SETP990000001',
+ *   credentials: { nit: '900123456', password: 'softwarePin' },
  *   environment: Environment.HABILITACION,
  *   method: DianSoapMethod.SEND_TEST_SET_ASYNC,
- *   testSetId: "abc123",
+ *   testSetId: 'abc123',
  * });
+ * console.log(result.isValid, result.trackId);
  * ```
+ *
+ * @see {@link https://vpfe.dian.gov.co/WcfDianCustomerServices.svc | DIAN WCF Service}
+ * @see {@link DianSendResponse}
  */
 export async function sendBill(options: SendBillOptions): Promise<DianSendResponse> {
   const {
@@ -100,7 +118,25 @@ export async function sendBill(options: SendBillOptions): Promise<DianSendRespon
 }
 
 /**
- * Consulta el estado de un documento por su CUFE o CUDE.
+ * Queries the processing status of a previously submitted document using its
+ * CUFE (invoice) or CUDE (credit/debit note) via the DIAN `GetStatus` SOAP method.
+ *
+ * @param options - Configuration including the trackId (CUFE/CUDE), credentials, and environment
+ * @returns Parsed DIAN response with the current validation status and any errors
+ * @throws {DianTransportError} If the HTTP request fails, times out, or DIAN returns a SOAP Fault
+ *
+ * @example
+ * ```typescript
+ * const status = await getStatus({
+ *   trackId: 'b4f7c2a1-3e5d-4f8a-9b2c-1d6e8f0a3c5b',
+ *   credentials: { nit: '900123456', password: 'softwarePin' },
+ *   environment: Environment.PRODUCCION,
+ * });
+ * console.log(status.isValid, status.statusDescription);
+ * ```
+ *
+ * @see {@link https://vpfe.dian.gov.co/WcfDianCustomerServices.svc | DIAN WCF Service}
+ * @see {@link DianStatusResponse}
  */
 export async function getStatus(options: GetStatusOptions): Promise<DianStatusResponse> {
   const { trackId, credentials, environment, timeoutMs = DEFAULT_TIMEOUT_MS } = options;
@@ -114,8 +150,28 @@ export async function getStatus(options: GetStatusOptions): Promise<DianStatusRe
 }
 
 /**
- * Consulta el estado de un lote de documentos por su ZIP ID.
- * Útil para envíos realizados con `SendBillAsync` o `SendTestSetAsync`.
+ * Queries the processing status of a document batch by its ZIP ID via the
+ * DIAN `GetStatusZip` SOAP method. Use this for documents submitted
+ * asynchronously through `SendBillAsync` or `SendTestSetAsync`.
+ *
+ * @param options - Configuration including the ZIP trackId, credentials, and environment
+ * @returns Parsed DIAN response with the current batch validation status and any errors
+ * @throws {DianTransportError} If the HTTP request fails, times out, or DIAN returns a SOAP Fault
+ *
+ * @example
+ * ```typescript
+ * const status = await getStatusZip({
+ *   trackId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+ *   credentials: { nit: '900123456', password: 'softwarePin' },
+ *   environment: Environment.HABILITACION,
+ * });
+ * if (status.isValid) {
+ *   console.log('Batch accepted:', status.statusDescription);
+ * }
+ * ```
+ *
+ * @see {@link sendBill} - Use with `DianSoapMethod.SEND_BILL_ASYNC` or `SEND_TEST_SET_ASYNC`
+ * @see {@link DianStatusResponse}
  */
 export async function getStatusZip(options: GetStatusOptions): Promise<DianStatusResponse> {
   const { trackId, credentials, environment, timeoutMs = DEFAULT_TIMEOUT_MS } = options;
@@ -129,7 +185,32 @@ export async function getStatusZip(options: GetStatusOptions): Promise<DianStatu
 }
 
 /**
- * Consulta los rangos de numeración autorizados por DIAN para un software.
+ * Queries the authorized numbering ranges (resolutions) for a registered software
+ * from the DIAN `GetNumberingRange` SOAP method.
+ *
+ * Numbering ranges define which prefixes and consecutive number intervals the
+ * supplier is authorized to use for electronic invoicing.
+ *
+ * @param options - Configuration including accountCode, softwareCode, credentials, and environment
+ * @returns Parsed response containing the list of authorized numbering ranges
+ * @throws {DianTransportError} If the HTTP request fails, times out, or DIAN returns a SOAP Fault
+ *
+ * @example
+ * ```typescript
+ * const result = await getNumberingRange({
+ *   accountCode: '900123456',
+ *   accountCodeT: '900654321',
+ *   softwareCode: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+ *   credentials: { nit: '900123456', password: 'softwarePin' },
+ *   environment: Environment.PRODUCCION,
+ * });
+ * for (const range of result.ranges) {
+ *   console.log(`${range.prefix}: ${range.fromNumber}-${range.toNumber}`);
+ * }
+ * ```
+ *
+ * @see {@link https://vpfe.dian.gov.co/WcfDianCustomerServices.svc | DIAN WCF Service}
+ * @see {@link DianNumberingRangeResponse}
  */
 export async function getNumberingRange(
   options: GetNumberingRangeOptions,
@@ -145,22 +226,31 @@ export async function getNumberingRange(
 }
 
 /**
- * Consulta los datos de un adquiriente (comprador) registrado en DIAN.
+ * Queries acquirer (buyer) information from the DIAN registry via the
+ * `GetAcquirer` SOAP method. Returns the buyer's registered legal name
+ * and email address.
  *
- * Útil para autocompletar datos del comprador al crear una factura:
- * nombre/razón social y email registrado ante DIAN.
+ * Useful for auto-completing buyer details when creating an invoice,
+ * ensuring the legal name and email match DIAN's official records.
+ *
+ * @param options - Configuration including identification type/number, credentials, and environment
+ * @returns Parsed response with the acquirer's registered name and email
+ * @throws {DianTransportError} If the HTTP request fails, times out, or DIAN returns a SOAP Fault
  *
  * @example
  * ```typescript
  * const buyer = await getAcquirer({
- *   identificationType: "31",        // NIT
- *   identificationNumber: "900123456",
- *   credentials: { nit: "800456789", password: "softwarePin" },
+ *   identificationType: '31',         // NIT
+ *   identificationNumber: '900123456',
+ *   credentials: { nit: '800456789', password: 'softwarePin' },
  *   environment: Environment.HABILITACION,
  * });
  * console.log(buyer.receiverName);  // "EMPRESA XYZ SAS"
  * console.log(buyer.receiverEmail); // "facturacion@empresa.com"
  * ```
+ *
+ * @see {@link https://vpfe.dian.gov.co/WcfDianCustomerServices.svc | DIAN WCF Service}
+ * @see {@link DianAcquirerResponse}
  */
 export async function getAcquirer(
   options: GetAcquirerOptions,
