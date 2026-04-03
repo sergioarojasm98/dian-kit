@@ -1,7 +1,6 @@
 import type {
   BillingReference,
   CertificateData,
-  DianCredentials,
   DianSoapMethodValue,
   DiscrepancyResponse,
   DocumentTypeValue,
@@ -40,7 +39,6 @@ import type {
  *   certificatePassword: 'cert-password',
  *   supplier: { name: 'Mi Empresa SAS', ... },
  *   software: { id: 'abc-123', pin: '12345', providerNit: '900123456', providerName: 'Mi Empresa SAS' },
- *   credentials: { nit: '900123456', password: 'dian-password' },
  *   environment: '2', // sandbox
  *   numbering: { authorizationNumber: '18764000001', prefix: 'SETP', startNumber: 990000000, endNumber: 995000000, startDate: new Date(), endDate: new Date() },
  * };
@@ -82,14 +80,6 @@ export interface DianKitConfig {
    * registration and are required for CUFE/CUDE computation and API authentication.
    */
   software: SoftwareInfo;
-
-  /**
-   * WS-Security UsernameToken credentials for the DIAN SOAP API.
-   *
-   * These are the NIT and software password used to authenticate SOAP
-   * requests to DIAN's `WcfDianCustomerServices` web service.
-   */
-  credentials: DianCredentials;
 
   /**
    * DIAN environment identifier.

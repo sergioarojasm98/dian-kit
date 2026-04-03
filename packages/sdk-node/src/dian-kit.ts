@@ -77,7 +77,6 @@ import type {
  *     email: 'facturacion@miempresa.com',
  *   },
  *   software: { id: 'abc-123', pin: '12345', providerNit: '900123456', providerName: 'Mi Empresa SAS' },
- *   credentials: { nit: '900123456', password: 'dian-password' },
  *   environment: '2', // sandbox
  *   numbering: {
  *     authorizationNumber: '18764000001',
@@ -124,7 +123,7 @@ export class DianKit {
    * signing.
    *
    * @param config - SDK configuration including certificate, supplier info,
-   *   software credentials, DIAN environment, and numbering authorization.
+   *   software settings, DIAN environment, and numbering authorization.
    *
    * @throws {Error} If the `.p12` certificate cannot be loaded or the
    *   password is incorrect.
@@ -136,7 +135,6 @@ export class DianKit {
    *   certificatePassword: 'my-cert-password',
    *   supplier: { ... },
    *   software: { id: '...', pin: '...', providerNit: '...', providerName: '...' },
-   *   credentials: { nit: '900123456', password: 'dian-password' },
    *   environment: '2',
    *   numbering: { ... },
    * });
@@ -148,7 +146,6 @@ export class DianKit {
     this.config = {
       supplier: config.supplier,
       software: config.software,
-      credentials: config.credentials,
       environment: config.environment,
       numbering: config.numbering,
       timeoutMs: config.timeoutMs,
@@ -392,7 +389,7 @@ export class DianKit {
       signedXml: document.signedXml,
       supplierNit: this.config.supplier.identification.number,
       documentNumber: document.documentNumber,
-      credentials: this.config.credentials,
+      auth: { certificate: this.config.certificateData },
       environment: this.config.environment,
       method: options?.method,
       testSetId: options?.testSetId,
@@ -429,7 +426,7 @@ export class DianKit {
   async getStatus(trackId: string): Promise<DianStatusResponse> {
     return getStatus({
       trackId,
-      credentials: this.config.credentials,
+      auth: { certificate: this.config.certificateData },
       environment: this.config.environment,
       timeoutMs: this.config.timeoutMs,
     });
@@ -470,7 +467,7 @@ export class DianKit {
   async getStatusZip(trackId: string): Promise<DianStatusResponse> {
     return getStatusZip({
       trackId,
-      credentials: this.config.credentials,
+      auth: { certificate: this.config.certificateData },
       environment: this.config.environment,
       timeoutMs: this.config.timeoutMs,
     });
@@ -511,7 +508,7 @@ export class DianKit {
       accountCode: this.config.supplier.identification.number,
       accountCodeT: accountCodeT ?? this.config.supplier.identification.number,
       softwareCode: this.config.software.id,
-      credentials: this.config.credentials,
+      auth: { certificate: this.config.certificateData },
       environment: this.config.environment,
       timeoutMs: this.config.timeoutMs,
     });
@@ -553,7 +550,7 @@ export class DianKit {
     return getAcquirer({
       identificationType: options.identificationType,
       identificationNumber: options.identificationNumber,
-      credentials: this.config.credentials,
+      auth: { certificate: this.config.certificateData },
       environment: this.config.environment,
       timeoutMs: this.config.timeoutMs,
     });

@@ -4,7 +4,7 @@
  *
  * Provides high-level functions for sending documents, querying status,
  * retrieving numbering ranges, and looking up acquirer information.
- * All communication uses SOAP 1.2 with WS-Security UsernameToken authentication.
+ * All communication uses SOAP 1.2 with WS-Security Signature authentication.
  *
  * @example
  * ```typescript
@@ -25,7 +25,6 @@
 export { getAcquirer, getNumberingRange, getStatus, getStatusZip, sendBill } from "./dian-client.js";
 export type {
   DianAcquirerResponse,
-  DianCredentials,
   DianNumberingRange,
   DianNumberingRangeResponse,
   DianSendResponse,
@@ -36,5 +35,6 @@ export type {
   GetNumberingRangeOptions,
   GetStatusOptions,
   SendBillOptions,
+  SoapAuthConfig,
 } from "./types.js";
 export { DianTransportError } from "./types.js";

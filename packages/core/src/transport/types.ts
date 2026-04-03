@@ -1,5 +1,6 @@
 import type { DianSoapMethod } from "../constants/dian-endpoints.js";
 import type { EnvironmentValue } from "../constants/document-types.js";
+import type { CertificateData } from "../security/certificate.js";
 
 /**
  * Re-exported environment value type for transport consumers.
@@ -17,20 +18,18 @@ export type { EnvironmentValue };
 export type DianSoapMethodValue = (typeof DianSoapMethod)[keyof typeof DianSoapMethod];
 
 /**
- * WS-Security UsernameToken credentials required to authenticate with the
- * DIAN electronic invoicing web service (WcfDianCustomerServices).
+ * WS-Security Signature authentication configuration for the DIAN electronic
+ * invoicing web service (WcfDianCustomerServices).
  *
- * These credentials are issued when a software is registered in the DIAN portal.
- * The password is transmitted as plain text inside the SOAP header, but the
- * connection itself is secured via TLS.
+ * The SOAP envelope is signed with the .p12 certificate using RSA-SHA256.
+ * The BinarySecurityToken and XML Signature are included in the WS-Security
+ * header as required by DIAN.
  *
  * @see {@link https://vpfe.dian.gov.co/WcfDianCustomerServices.svc | DIAN WSDL}
  */
-export interface DianCredentials {
-  /** Supplier NIT without verification digit or dashes (e.g., `"900123456"`) */
-  nit: string;
-  /** Software password registered in the DIAN portal */
-  password: string;
+export interface SoapAuthConfig {
+  /** Certificate data loaded from .p12 via loadP12() */
+  certificate: CertificateData;
 }
 
 /**
@@ -46,7 +45,7 @@ export interface DianCredentials {
  *   signedXml: '<Invoice>...</Invoice>',
  *   supplierNit: '900123456',
  *   documentNumber: 'SETP990000001',
- *   credentials: { nit: '900123456', password: 'softwarePin' },
+ *   auth: { certificate: loadP12(p12Buffer, password) },
  *   environment: Environment.HABILITACION,
  *   method: DianSoapMethod.SEND_TEST_SET_ASYNC,
  *   testSetId: 'abc123-test-set-id',
@@ -62,8 +61,8 @@ export interface SendBillOptions {
   supplierNit: string;
   /** Document number (e.g., `"SETP990000001"`) -- used for ZIP file naming */
   documentNumber: string;
-  /** WS-Security credentials for DIAN authentication */
-  credentials: DianCredentials;
+  /** WS-Security Signature authentication configuration */
+  auth: SoapAuthConfig;
   /** DIAN environment: `"1"` = production, `"2"` = sandbox (habilitacion) */
   environment: EnvironmentValue;
   /**
@@ -90,7 +89,7 @@ export interface SendBillOptions {
  * ```typescript
  * const options: GetStatusOptions = {
  *   trackId: 'b4f7c2a1-3e5d-4f8a-9b2c-1d6e8f0a3c5b',
- *   credentials: { nit: '900123456', password: 'softwarePin' },
+ *   auth: { certificate: loadP12(p12Buffer, password) },
  *   environment: Environment.PRODUCCION,
  * };
  * ```
@@ -101,8 +100,8 @@ export interface SendBillOptions {
 export interface GetStatusOptions {
   /** CUFE (invoice hash) or CUDE (credit/debit note hash) of the document to query */
   trackId: string;
-  /** WS-Security credentials for DIAN authentication */
-  credentials: DianCredentials;
+  /** WS-Security Signature authentication configuration */
+  auth: SoapAuthConfig;
   /** DIAN environment: `"1"` = production, `"2"` = sandbox */
   environment: EnvironmentValue;
   /** HTTP timeout in milliseconds (default: `30_000`) */
@@ -122,7 +121,7 @@ export interface GetStatusOptions {
  *   accountCode: '900123456',
  *   accountCodeT: '900654321',
  *   softwareCode: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
- *   credentials: { nit: '900123456', password: 'softwarePin' },
+ *   auth: { certificate: loadP12(p12Buffer, password) },
  *   environment: Environment.PRODUCCION,
  * };
  * ```
@@ -136,8 +135,8 @@ export interface GetNumberingRangeOptions {
   accountCodeT: string;
   /** Software ID registered in the DIAN portal (UUID format) */
   softwareCode: string;
-  /** WS-Security credentials for DIAN authentication */
-  credentials: DianCredentials;
+  /** WS-Security Signature authentication configuration */
+  auth: SoapAuthConfig;
   /** DIAN environment: `"1"` = production, `"2"` = sandbox */
   environment: EnvironmentValue;
   /** HTTP timeout in milliseconds (default: `30_000`) */
@@ -156,7 +155,7 @@ export interface GetNumberingRangeOptions {
  * const options: GetAcquirerOptions = {
  *   identificationType: '31',         // NIT
  *   identificationNumber: '900123456',
- *   credentials: { nit: '800456789', password: 'softwarePin' },
+ *   auth: { certificate: loadP12(p12Buffer, password) },
  *   environment: Environment.HABILITACION,
  * };
  * ```
@@ -168,8 +167,8 @@ export interface GetAcquirerOptions {
   identificationType: string;
   /** Acquirer identification number without verification digit or dashes */
   identificationNumber: string;
-  /** WS-Security credentials for DIAN authentication */
-  credentials: DianCredentials;
+  /** WS-Security Signature authentication configuration */
+  auth: SoapAuthConfig;
   /** DIAN environment: `"1"` = production, `"2"` = sandbox */
   environment: EnvironmentValue;
   /** HTTP timeout in milliseconds (default: `30_000`) */

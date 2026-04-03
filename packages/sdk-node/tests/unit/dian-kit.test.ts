@@ -171,7 +171,6 @@ const testConfig: DianKitConfig = {
     providerNit: "900123456",
     providerName: "Peluquería Estilo Total SAS",
   },
-  credentials: { nit: "900123456", password: "softwarePin" },
   environment: Environment.HABILITACION,
   numbering: {
     authorizationNumber: "18760000001",
@@ -470,7 +469,7 @@ describe("DianKit", () => {
         signedXml: "<SignedXml>mock</SignedXml>",
         supplierNit: "900123456",
         documentNumber: "SETP990000001",
-        credentials: { nit: "900123456", password: "softwarePin" },
+        auth: { certificate: MOCK_CERTIFICATE },
         environment: Environment.HABILITACION,
         method: undefined,
         testSetId: undefined,
@@ -516,7 +515,7 @@ describe("DianKit", () => {
 
       expect(getStatus).toHaveBeenCalledWith({
         trackId: "mock-cufe-sha384-hash",
-        credentials: { nit: "900123456", password: "softwarePin" },
+        auth: { certificate: MOCK_CERTIFICATE },
         environment: Environment.HABILITACION,
         timeoutMs: undefined,
       });
@@ -530,7 +529,7 @@ describe("DianKit", () => {
 
       expect(getStatusZip).toHaveBeenCalledWith({
         trackId: "zip-track-id",
-        credentials: { nit: "900123456", password: "softwarePin" },
+        auth: { certificate: MOCK_CERTIFICATE },
         environment: Environment.HABILITACION,
         timeoutMs: undefined,
       });
@@ -546,7 +545,7 @@ describe("DianKit", () => {
         accountCode: "900123456",
         accountCodeT: "900123456",
         softwareCode: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-        credentials: { nit: "900123456", password: "softwarePin" },
+        auth: { certificate: MOCK_CERTIFICATE },
         environment: Environment.HABILITACION,
         timeoutMs: undefined,
       });
@@ -578,7 +577,7 @@ describe("DianKit", () => {
       expect(getAcquirer).toHaveBeenCalledWith({
         identificationType: "31",
         identificationNumber: "900654321",
-        credentials: { nit: "900123456", password: "softwarePin" },
+        auth: { certificate: MOCK_CERTIFICATE },
         environment: Environment.HABILITACION,
         timeoutMs: undefined,
       });

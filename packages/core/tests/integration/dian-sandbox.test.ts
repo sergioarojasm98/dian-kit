@@ -112,7 +112,17 @@ describe.skipIf(!HAS_CREDENTIALS)("DIAN Sandbox Integration", () => {
     providerNit: process.env.DIAN_TEST_PROVIDER_NIT ?? "",
   };
 
-  const credentials = { nit: env.nit, password: env.password };
+  // Load the .p12 certificate for SOAP authentication
+  // (loaded lazily in tests that need it; declared here for shared scope)
+  let certData: ReturnType<typeof loadP12> | undefined;
+
+  function getAuth() {
+    if (!certData) {
+      const p12Buffer = readFileSync(env.p12Path);
+      certData = loadP12(p12Buffer, env.p12Password);
+    }
+    return { certificate: certData };
+  }
 
   // -------------------------------------------------------------------------
   // Helper: build a minimal DianDocument for testing
@@ -284,16 +294,16 @@ describe.skipIf(!HAS_CREDENTIALS)("DIAN Sandbox Integration", () => {
   }
 
   // =========================================================================
-  // Test 1: GetNumberingRange — validate credentials and connectivity
+  // Test 1: GetNumberingRange — validate certificate auth and connectivity
   // =========================================================================
   it("should retrieve numbering ranges from DIAN sandbox", async () => {
-    // This test validates that the credentials are correct and the DIAN
+    // This test validates that the certificate auth is correct and the DIAN
     // sandbox is reachable. It does NOT require a signed XML document.
     const result = await getNumberingRange({
       accountCode: env.nit,
       accountCodeT: env.providerNit,
       softwareCode: env.softwareId,
-      credentials,
+      auth: getAuth(),
       environment: Environment.HABILITACION,
     });
 
@@ -365,7 +375,7 @@ describe.skipIf(!HAS_CREDENTIALS)("DIAN Sandbox Integration", () => {
       signedXml,
       supplierNit: env.nit,
       documentNumber: doc.id,
-      credentials,
+      auth: getAuth(),
       environment: Environment.HABILITACION,
       method: DianSoapMethod.SEND_TEST_SET_ASYNC,
       testSetId: env.testSetId,
@@ -416,7 +426,7 @@ describe.skipIf(!HAS_CREDENTIALS)("DIAN Sandbox Integration", () => {
       signedXml,
       supplierNit: env.nit,
       documentNumber: doc.id,
-      credentials,
+      auth: getAuth(),
       environment: Environment.HABILITACION,
       method: DianSoapMethod.SEND_TEST_SET_ASYNC,
       testSetId: env.testSetId,
@@ -435,7 +445,7 @@ describe.skipIf(!HAS_CREDENTIALS)("DIAN Sandbox Integration", () => {
     // -----------------------------------------------------------------------
     const statusResult = await getStatusZip({
       trackId: sendResult.trackId,
-      credentials,
+      auth: getAuth(),
       environment: Environment.HABILITACION,
       timeoutMs: 60_000,
     });
@@ -473,7 +483,7 @@ describe.skipIf(!HAS_CREDENTIALS)("DIAN Sandbox Integration", () => {
       signedXml,
       supplierNit: env.nit,
       documentNumber: doc.id,
-      credentials,
+      auth: getAuth(),
       environment: Environment.HABILITACION,
       method: DianSoapMethod.SEND_TEST_SET_ASYNC,
       testSetId: env.testSetId,
@@ -485,7 +495,7 @@ describe.skipIf(!HAS_CREDENTIALS)("DIAN Sandbox Integration", () => {
     // -----------------------------------------------------------------------
     const statusResult = await getStatus({
       trackId: cufe,
-      credentials,
+      auth: getAuth(),
       environment: Environment.HABILITACION,
       timeoutMs: 60_000,
     });

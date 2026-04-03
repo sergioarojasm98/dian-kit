@@ -71,8 +71,6 @@ export type {
   CertificateData,
   /** Response from DIAN's GetAcquirer SOAP method. */
   DianAcquirerResponse,
-  /** WS-Security credentials for DIAN SOAP API authentication. */
-  DianCredentials,
   /** Single numbering range returned by DIAN. */
   DianNumberingRange,
   /** Response from DIAN's GetNumberingRange SOAP method. */
@@ -101,6 +99,8 @@ export type {
   PartyTaxInfo,
   /** Payment form and method for the document. */
   PaymentMeans,
+  /** WS-Security Signature authentication configuration for DIAN SOAP API. */
+  SoapAuthConfig,
   /** DIAN-registered software information. */
   SoftwareInfo,
   /** Tax scheme (IVA, ICA, INC, etc.). */

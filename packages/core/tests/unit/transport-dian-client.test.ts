@@ -2,14 +2,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DianEndpoint, DianSoapMethod } from "../../src/constants/dian-endpoints.js";
 import { Environment } from "../../src/constants/document-types.js";
+import { generateTestP12, loadP12 } from "../../src/security/certificate.js";
 import { getAcquirer, getNumberingRange, getStatus, getStatusZip, sendBill } from "../../src/transport/dian-client.js";
 import * as httpClient from "../../src/transport/http-client.js";
+import type { SoapAuthConfig } from "../../src/transport/types.js";
 import { DianTransportError } from "../../src/transport/types.js";
 
 const SIGNED_XML = `<?xml version="1.0" encoding="utf-8"?><Invoice><cbc:ID>SETP990000001</cbc:ID></Invoice>`;
 const SUPPLIER_NIT = "900123456";
 const DOC_NUMBER = "SETP990000001";
-const CREDS = { nit: "900123456", password: "testPassword" };
+
+const TEST_P12 = generateTestP12("test-password");
+const TEST_CERT = loadP12(TEST_P12, "test-password");
+const AUTH: SoapAuthConfig = { certificate: TEST_CERT };
 
 const MOCK_SEND_RESPONSE = `<?xml version="1.0" encoding="utf-8"?>
 <s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope">
@@ -84,12 +89,12 @@ describe("sendBill", () => {
     vi.restoreAllMocks();
   });
 
-  it("usa el endpoint sandbox cuando environment = HABILITACION", async () => {
+  it("uses the sandbox endpoint when environment = HABILITACION", async () => {
     await sendBill({
       signedXml: SIGNED_XML,
       supplierNit: SUPPLIER_NIT,
       documentNumber: DOC_NUMBER,
-      credentials: CREDS,
+      auth: AUTH,
       environment: Environment.HABILITACION,
     });
 
@@ -97,12 +102,12 @@ describe("sendBill", () => {
     expect(call.url).toBe(DianEndpoint.SANDBOX.SERVICE);
   });
 
-  it("usa el endpoint producción cuando environment = PRODUCCION", async () => {
+  it("uses the production endpoint when environment = PRODUCCION", async () => {
     await sendBill({
       signedXml: SIGNED_XML,
       supplierNit: SUPPLIER_NIT,
       documentNumber: DOC_NUMBER,
-      credentials: CREDS,
+      auth: AUTH,
       environment: Environment.PRODUCCION,
     });
 
@@ -110,12 +115,12 @@ describe("sendBill", () => {
     expect(call.url).toBe(DianEndpoint.PRODUCTION.SERVICE);
   });
 
-  it("usa SendBillSync como método por defecto", async () => {
+  it("uses SendBillSync as the default method", async () => {
     await sendBill({
       signedXml: SIGNED_XML,
       supplierNit: SUPPLIER_NIT,
       documentNumber: DOC_NUMBER,
-      credentials: CREDS,
+      auth: AUTH,
       environment: Environment.HABILITACION,
     });
 
@@ -123,12 +128,12 @@ describe("sendBill", () => {
     expect(call.soapAction).toContain("SendBillSync");
   });
 
-  it("retorna DianSendResponse bien tipada con isValid=true", async () => {
+  it("returns a well-typed DianSendResponse with isValid=true", async () => {
     const result = await sendBill({
       signedXml: SIGNED_XML,
       supplierNit: SUPPLIER_NIT,
       documentNumber: DOC_NUMBER,
-      credentials: CREDS,
+      auth: AUTH,
       environment: Environment.HABILITACION,
     });
 
@@ -138,25 +143,25 @@ describe("sendBill", () => {
     expect(result.rawResponse).toBeDefined();
   });
 
-  it("lanza DianTransportError si method=SendTestSetAsync y no hay testSetId", async () => {
+  it("throws DianTransportError if method=SendTestSetAsync and testSetId is missing", async () => {
     await expect(
       sendBill({
         signedXml: SIGNED_XML,
         supplierNit: SUPPLIER_NIT,
         documentNumber: DOC_NUMBER,
-        credentials: CREDS,
+        auth: AUTH,
         environment: Environment.HABILITACION,
         method: DianSoapMethod.SEND_TEST_SET_ASYNC,
       }),
     ).rejects.toThrow(DianTransportError);
   });
 
-  it("usa SendTestSetAsync con testSetId cuando se especifica", async () => {
+  it("uses SendTestSetAsync with testSetId when specified", async () => {
     await sendBill({
       signedXml: SIGNED_XML,
       supplierNit: SUPPLIER_NIT,
       documentNumber: DOC_NUMBER,
-      credentials: CREDS,
+      auth: AUTH,
       environment: Environment.HABILITACION,
       method: DianSoapMethod.SEND_TEST_SET_ASYNC,
       testSetId: "testSet-001",
@@ -167,7 +172,7 @@ describe("sendBill", () => {
     expect(call.body).toContain("testSet-001");
   });
 
-  it("propaga DianTransportError cuando postSoap falla", async () => {
+  it("propagates DianTransportError when postSoap fails", async () => {
     postSoapSpy.mockRejectedValue(
       new DianTransportError("El servidor DIAN retornó HTTP 500.", 500),
     );
@@ -177,7 +182,7 @@ describe("sendBill", () => {
         signedXml: SIGNED_XML,
         supplierNit: SUPPLIER_NIT,
         documentNumber: DOC_NUMBER,
-        credentials: CREDS,
+        auth: AUTH,
         environment: Environment.HABILITACION,
       }),
     ).rejects.toThrow(DianTransportError);
@@ -193,12 +198,12 @@ describe("getStatus", () => {
     vi.restoreAllMocks();
   });
 
-  it("pasa el trackId al SOAP body", async () => {
+  it("passes the trackId to the SOAP body", async () => {
     const postSoapSpy = vi.spyOn(httpClient, "postSoap").mockResolvedValue(MOCK_STATUS_RESPONSE);
 
     await getStatus({
       trackId: "abc123cufe",
-      credentials: CREDS,
+      auth: AUTH,
       environment: Environment.HABILITACION,
     });
 
@@ -206,10 +211,10 @@ describe("getStatus", () => {
     expect(postSoapSpy.mock.calls[0]![0].soapAction).toContain("GetStatus");
   });
 
-  it("retorna DianStatusResponse bien tipada", async () => {
+  it("returns a well-typed DianStatusResponse", async () => {
     const result = await getStatus({
       trackId: "abc123cufe",
-      credentials: CREDS,
+      auth: AUTH,
       environment: Environment.HABILITACION,
     });
 
@@ -219,14 +224,14 @@ describe("getStatus", () => {
 });
 
 describe("getStatusZip", () => {
-  it("usa GetStatusZip como método SOAP", async () => {
+  it("uses GetStatusZip as the SOAP method", async () => {
     const postSoapSpy = vi
       .spyOn(httpClient, "postSoap")
       .mockResolvedValue(MOCK_STATUS_RESPONSE);
 
     await getStatusZip({
       trackId: "zip-track-id",
-      credentials: CREDS,
+      auth: AUTH,
       environment: Environment.HABILITACION,
     });
 
@@ -235,14 +240,14 @@ describe("getStatusZip", () => {
 });
 
 describe("getNumberingRange", () => {
-  it("retorna rangos de numeración tipados", async () => {
+  it("returns typed numbering ranges", async () => {
     vi.spyOn(httpClient, "postSoap").mockResolvedValue(MOCK_NUMBERING_RESPONSE);
 
     const result = await getNumberingRange({
       accountCode: "900123456",
       accountCodeT: "800000001",
       softwareCode: "SW-001",
-      credentials: CREDS,
+      auth: AUTH,
       environment: Environment.HABILITACION,
     });
 
@@ -261,7 +266,7 @@ describe("getAcquirer", () => {
     vi.restoreAllMocks();
   });
 
-  it("pasa identificationType e identificationNumber al SOAP body", async () => {
+  it("passes identificationType and identificationNumber to the SOAP body", async () => {
     const postSoapSpy = vi
       .spyOn(httpClient, "postSoap")
       .mockResolvedValue(MOCK_ACQUIRER_RESPONSE);
@@ -269,7 +274,7 @@ describe("getAcquirer", () => {
     await getAcquirer({
       identificationType: "31",
       identificationNumber: "900123456",
-      credentials: CREDS,
+      auth: AUTH,
       environment: Environment.HABILITACION,
     });
 
@@ -279,7 +284,7 @@ describe("getAcquirer", () => {
     expect(call.soapAction).toContain("GetAcquirer");
   });
 
-  it("usa el endpoint sandbox para HABILITACION", async () => {
+  it("uses the sandbox endpoint for HABILITACION", async () => {
     const postSoapSpy = vi
       .spyOn(httpClient, "postSoap")
       .mockResolvedValue(MOCK_ACQUIRER_RESPONSE);
@@ -287,20 +292,20 @@ describe("getAcquirer", () => {
     await getAcquirer({
       identificationType: "31",
       identificationNumber: "900123456",
-      credentials: CREDS,
+      auth: AUTH,
       environment: Environment.HABILITACION,
     });
 
     expect(postSoapSpy.mock.calls[0]![0].url).toBe(DianEndpoint.SANDBOX.SERVICE);
   });
 
-  it("retorna DianAcquirerResponse con datos del adquiriente", async () => {
+  it("returns DianAcquirerResponse with acquirer data", async () => {
     vi.spyOn(httpClient, "postSoap").mockResolvedValue(MOCK_ACQUIRER_RESPONSE);
 
     const result = await getAcquirer({
       identificationType: "31",
       identificationNumber: "900123456",
-      credentials: CREDS,
+      auth: AUTH,
       environment: Environment.HABILITACION,
     });
 
@@ -310,7 +315,7 @@ describe("getAcquirer", () => {
     expect(result.message).toBe("Operación exitosa");
   });
 
-  it("propaga DianTransportError cuando postSoap falla", async () => {
+  it("propagates DianTransportError when postSoap fails", async () => {
     vi.spyOn(httpClient, "postSoap").mockRejectedValue(
       new DianTransportError("El servidor DIAN retornó HTTP 500.", 500),
     );
@@ -319,7 +324,7 @@ describe("getAcquirer", () => {
       getAcquirer({
         identificationType: "31",
         identificationNumber: "900123456",
-        credentials: CREDS,
+        auth: AUTH,
         environment: Environment.HABILITACION,
       }),
     ).rejects.toThrow(DianTransportError);
