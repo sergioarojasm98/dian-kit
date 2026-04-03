@@ -92,13 +92,19 @@
 | `packages/sdk-node/src/types.ts` | Update DianKitConfig |
 | Tests | All transport tests need updating |
 
+## Certificate Status
+
+- **Self-signed certificate REJECTED** by DIAN sandbox (HTTP 500, s:Client fault — no reason given)
+- **DIAN free certificate in progress**: switched to "Solución Gratuita" to request free cert, then will switch back to "Software propio" for testing
+- Certificate is tied to NIT, not to operation mode — should work after switching back
+- After switching back, Software ID / Test Set ID may change — re-register dian-kit and note new values
+
 ## Certificate Options (cheapest to most expensive)
 
-1. **Self-signed (free)** — Already generated. UNKNOWN if DIAN sandbox accepts it for SOAP auth. Worth trying first after transport rewrite.
-2. **DIAN free certificate** — Only available if mode is "Solución Gratuita", NOT "Software propio". Cannot have both modes simultaneously.
-3. **Andes SCD** — Research needed for pricing
-4. **GSE** — ~$150K-300K COP/year
-5. **Certicámara** — ~$150K-300K COP/year
+1. **DIAN free certificate** — Switch to Solución Gratuita → get cert → switch back. IN PROGRESS.
+2. **Andes SCD** — ~$80K COP (~$20 USD)/year
+3. **GSE** — ~$130K COP (~$33 USD)/year
+4. **Certicámara** — ~$180K COP (~$45 USD)/year
 
 ## DIAN Sandbox Credentials (habilitación)
 
@@ -125,8 +131,8 @@
 
 ## Next Steps
 
-1. **Rewrite SOAP transport module** — Replace UsernameToken with WS-Security Signature
-2. **Test with self-signed cert first** — If DIAN sandbox rejects, then buy cheapest cert
-3. **Run integration tests** against DIAN sandbox
+1. **Get .p12 certificate** from DIAN free solution (in progress, up to 3 business days)
+2. **Switch back to "Software propio"**, re-register dian-kit, note new Software ID / Test Set ID
+3. **Run integration tests** against DIAN sandbox with real certificate
 4. **Publish to npm** once DIAN validates
 5. CLI, AI layer, Python SDK (Phase 3)
