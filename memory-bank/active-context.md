@@ -55,10 +55,23 @@
 
 ## Next Steps
 
-1. Implement CLI interactive commands
-2. Implement AI layer (natural language to invoice)
-3. Build Python SDK with core feature parity
-4. Run integration tests with real DIAN sandbox credentials
-5. Write usage examples
-6. Add JSDoc comments to public API surface
-7. Publish packages to npm and PyPI
+1. **Run integration test against DIAN sandbox** — credentials ready, retry during business hours (8am-5pm COT). Sandbox was unresponsive 2026-04-01 ~7pm COT.
+2. Validate test certificate (autofirmado) acceptance — if rejected, buy Certicámara cert (~$45 USD)
+3. Publish to npm once DIAN sandbox test passes
+4. Implement CLI interactive commands
+5. Implement AI layer (natural language to invoice)
+6. Build Python SDK with core feature parity
+
+## DIAN Sandbox Credentials (habilitación)
+
+- **NIT**: 1018506840 (persona natural, cédula)
+- **Software ID**: 829e7513-5839-467a-9786-191d4b57d652
+- **Software PIN**: 20261
+- **Clave técnica**: fc8eac422eba16e22ffd8c6f94b3f40a6e38162c
+- **Test Set ID**: da4d80ff-1a66-41fb-99fb-648067ba93cb
+- **Prefijo**: SETP
+- **Resolución**: 18760000001
+- **Rango**: 990000000 — 995000000
+- **Password SOAP**: probablemente la clave técnica (por verificar)
+- **Certificado**: test-cert.p12 autofirmado (por verificar si DIAN acepta)
+- **Endpoint**: https://vpfe-hab.dian.gov.co/WcfDianCustomerServices.svc
