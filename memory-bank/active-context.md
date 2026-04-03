@@ -2,8 +2,8 @@
 
 ## Last Session
 
-- **Date**: 2026-04-01
-- **Summary**: Security audit with ruflo — 9 findings (0C, 2H, 4M, 3L), resolved all H and M. LOW items tracked as backlog.
+- **Date**: 2026-04-02
+- **Summary**: Security audit complete, Phase 2 (npm publish prep) done, discovered CRITICAL architecture issue — SOAP transport uses UsernameToken but DIAN requires WS-Security Signature with certificate. Transport module must be rewritten.
 
 ## Current State
 
@@ -14,53 +14,91 @@
 - [x] Core: XAdES-EPES digital signing with .p12 certificates
 - [x] Core: CUFE/CUDE SHA-384 computation
 - [x] Core: SoftwareSecurityCode generation
-- [x] Core: DIAN SOAP/WCF transport client (all 7 methods)
 - [x] Core: Zod validation schemas for all document types
 - [x] Core: ZIP packaging for DIAN transport
 - [x] Core: SOAP response parsing
 - [x] SDK Node: `DianKit` class with full pipeline
 - [x] SDK Node: CreditNote, DebitNote, buyer lookup
 - [x] Unit tests: 170 core + 31 sdk-node = 201 passing
-- [x] CI workflow (GitHub Actions, Node 20+22, Python 3.12)
-- [x] Security: Zod validation enforced at SDK entry point (H1)
-- [x] Security: pnpm audit in CI pipeline (H2)
-- [x] Security: DIAN endpoint hostname allowlist (M1)
-- [x] Security: CodeQL SAST workflow (M2)
-- [x] Security: rawResponse truncation in errors (M3)
-- [x] Security: Integration test scaffold for DIAN sandbox (M4)
-- [x] JSDoc: Complete documentation across all 28 source files (L3)
+- [x] CI workflow (GitHub Actions, Node 20+22, Python 3.12, pnpm audit, CodeQL)
+- [x] Security audit: H1 (Zod enforcement), H2 (CI audit), M1-M4 resolved
+- [x] JSDoc: Complete documentation across all 28 source files
+- [x] Phase 2: CI trigger fix, examples, README update, publishConfig, release workflow
+
+### BLOCKED — Transport Rewrite Required
+
+- [ ] **SOAP transport uses WRONG authentication** — UsernameToken must be replaced with WS-Security Signature
+- [ ] Integration test against DIAN sandbox (blocked by transport rewrite)
+- [ ] npm publish (blocked by DIAN validation)
 
 ### In Progress
 
-- [ ] CLI implementation (package exists, only stub `console.log`)
-- [ ] AI layer implementation (package exists, only exports VERSION)
+- [ ] CLI implementation (stub)
+- [ ] AI layer implementation (stub)
 
-### Blocked
+## CRITICAL FINDING: SOAP Authentication Architecture
 
-- [ ] Python SDK (stub only)
-- [ ] WhatsApp plugin (package.json only)
-- [ ] Framework plugins (Express, FastAPI, WooCommerce, Shopify - not started)
+**Current (WRONG):** dian-kit sends UsernameToken (NIT + password) in SOAP header.
+```xml
+<wsse:UsernameToken>
+  <wsse:Username>NIT</wsse:Username>
+  <wsse:Password>password</wsse:Password>
+</wsse:UsernameToken>
+```
 
-## Recent Decisions
+**Required (CORRECT):** DIAN expects WS-Security Signature — the SOAP envelope itself must be signed with the .p12 certificate. NO UsernameToken at all.
+```xml
+<wsse:Security>
+  <wsu:Timestamp wsu:Id="TS-xxx">
+    <wsu:Created>2026-04-02T12:00:00Z</wsu:Created>
+    <wsu:Expires>2026-04-02T12:16:40Z</wsu:Expires>
+  </wsu:Timestamp>
+  <wsse:BinarySecurityToken>...X.509 cert base64...</wsse:BinarySecurityToken>
+  <ds:Signature>
+    <ds:SignedInfo>...RSA-SHA256 over wsa:To element...</ds:SignedInfo>
+    <ds:SignatureValue>...</ds:SignatureValue>
+    <ds:KeyInfo>...SecurityTokenReference to BinarySecurityToken...</ds:KeyInfo>
+  </ds:Signature>
+</wsse:Security>
+<wsa:Action>http://wcf.dian.colombia/IWcfDianCustomerServices/METHOD</wsa:Action>
+<wsa:To wsu:Id="ID-xxx">https://vpfe-hab.dian.gov.co/WcfDianCustomerServices.svc</wsa:To>
+```
 
-| Decision | Justification |
-|----------|---------------|
-| Truncate (not round) amounts in CUFE | DIAN rejects rounded values with CAD06/FAD06 |
-| Use xadesjs for signing | Only JS library supporting XAdES-EPES with policy |
-| Pre-compute DIAN policy hash | Avoids downloading PDF on every sign operation |
-| Spanish error messages | Target audience is Colombian developers |
-| Endpoint allowlist over cert pinning | Simpler, less brittle, prevents misconfiguration |
-| rawResponse truncated to 1000 chars | Prevents sensitive data in user logs |
-| Integration tests skip without credentials | Allows scaffold to exist without blocking CI |
+**Key details (from Stenfrank/soap-dian PHP reference):**
+- Authentication: purely certificate-based, NO UsernameToken
+- Signed element: only `wsa:To` (the endpoint URI)
+- Signature algorithm: RSA-SHA256
+- Digest algorithm: SHA-256
+- Canonicalization: Exclusive C14N
+- Timestamp: Created + Expires (Created + 60000ms TTL), GMT ISO 8601
+- WS-Addressing: `wsa:Action` + `wsa:To` headers required
+- BinarySecurityToken: X.509v3 cert extracted from .p12, Base64-encoded
+- KeyInfo: SecurityTokenReference pointing to BinarySecurityToken by wsu:Id
 
-## Next Steps
+**Reference implementations:**
+- PHP: https://github.com/Stenfrank/soap-dian (most complete)
+- Python: https://github.com/FuriosoJack/pyWSSE-Dian2
+- VB.NET example: https://www.example-code.com/vbnet/wcf_dian_colombia_soap_xml_signature.asp
 
-1. **Run integration test against DIAN sandbox** — credentials ready, retry during business hours (8am-5pm COT). Sandbox was unresponsive 2026-04-01 ~7pm COT.
-2. Validate test certificate (autofirmado) acceptance — if rejected, buy Certicámara cert (~$45 USD)
-3. Publish to npm once DIAN sandbox test passes
-4. Implement CLI interactive commands
-5. Implement AI layer (natural language to invoice)
-6. Build Python SDK with core feature parity
+## Files That Need Rewriting
+
+| File | Change |
+|------|--------|
+| `packages/core/src/transport/soap-builder.ts` | Replace UsernameToken with WS-Security Signature + WS-Addressing |
+| `packages/core/src/transport/http-client.ts` | May need adjustments for signed envelope |
+| `packages/core/src/transport/types.ts` | Replace `DianCredentials {nit, password}` with certificate-based auth |
+| `packages/core/src/transport/dian-client.ts` | Update all methods to pass certificate instead of credentials |
+| `packages/sdk-node/src/dian-kit.ts` | Update to use certificate for SOAP auth |
+| `packages/sdk-node/src/types.ts` | Update DianKitConfig |
+| Tests | All transport tests need updating |
+
+## Certificate Options (cheapest to most expensive)
+
+1. **Self-signed (free)** — Already generated. UNKNOWN if DIAN sandbox accepts it for SOAP auth. Worth trying first after transport rewrite.
+2. **DIAN free certificate** — Only available if mode is "Solución Gratuita", NOT "Software propio". Cannot have both modes simultaneously.
+3. **Andes SCD** — Research needed for pricing
+4. **GSE** — ~$150K-300K COP/year
+5. **Certicámara** — ~$150K-300K COP/year
 
 ## DIAN Sandbox Credentials (habilitación)
 
@@ -72,6 +110,23 @@
 - **Prefijo**: SETP
 - **Resolución**: 18760000001
 - **Rango**: 990000000 — 995000000
-- **Password SOAP**: probablemente la clave técnica (por verificar)
-- **Certificado**: test-cert.p12 autofirmado (por verificar si DIAN acepta)
 - **Endpoint**: https://vpfe-hab.dian.gov.co/WcfDianCustomerServices.svc
+
+## Recent Decisions
+
+| Decision | Justification |
+|----------|---------------|
+| Truncate (not round) amounts in CUFE | DIAN rejects rounded values with CAD06/FAD06 |
+| Use xadesjs for signing | Only JS library supporting XAdES-EPES with policy |
+| Pre-compute DIAN policy hash | Avoids downloading PDF on every sign operation |
+| Spanish error messages | Target audience is Colombian developers |
+| Endpoint allowlist over cert pinning | Simpler, less brittle, prevents misconfiguration |
+| WS-Security Signature over UsernameToken | DIAN requires certificate-based SOAP auth (discovered 2026-04-02) |
+
+## Next Steps
+
+1. **Rewrite SOAP transport module** — Replace UsernameToken with WS-Security Signature
+2. **Test with self-signed cert first** — If DIAN sandbox rejects, then buy cheapest cert
+3. **Run integration tests** against DIAN sandbox
+4. **Publish to npm** once DIAN validates
+5. CLI, AI layer, Python SDK (Phase 3)
