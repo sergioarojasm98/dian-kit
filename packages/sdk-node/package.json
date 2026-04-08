@@ -1,0 +1,58 @@
+{
+  "name": "@dian-kit/sdk-node",
+  "version": "1.0.0",
+  "description": "TypeScript/Node.js SDK for DIAN electronic invoicing with full type safety and Zod validation",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:unit": "vitest run --dir tests/unit",
+    "test:integration": "vitest run --dir tests/integration",
+    "lint": "biome check src/",
+    "lint:fix": "biome check --write src/",
+    "format": "biome format --write src/",
+    "check": "biome check src/",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist .turbo"
+  },
+  "keywords": [
+    "dian",
+    "sdk",
+    "typescript",
+    "nodejs",
+    "factura-electronica",
+    "colombia"
+  ],
+  "author": "Sergio Rojas <dian-kit@sergioarojasm98.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sergioarojasm98/dian-kit.git",
+    "directory": "packages/sdk-node"
+  },
+  "dependencies": {
+    "@dian-kit/core": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
