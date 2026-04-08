@@ -1,27 +1,37 @@
 import { create } from "xmlbuilder2";
 import type { XMLBuilder } from "xmlbuilder2/lib/interfaces.js";
 
-import { DocumentType, type EnvironmentValue } from "../constants/document-types.js";
+import { DocumentType } from "../constants/document-types.js";
 import { TaxCode, TaxCodeName } from "../constants/tax-codes.js";
 import type {
   AllowanceCharge,
   DianDocument,
   InvoiceLine,
   LegalMonetaryTotal,
-  NumberingAuthorization,
   Party,
   PaymentMeans,
-  SoftwareInfo,
   TaxTotal,
 } from "../types/common.js";
 import { formatAmount, formatDate, formatPercent, formatTime } from "../utils/amount.js";
-import { NS, SCHEMA_LOCATION, SCHEMA_LOCATION_CREDIT_NOTE, SCHEMA_LOCATION_DEBIT_NOTE, UBL_VERSION } from "./namespaces.js";
+import {
+  NS,
+  SCHEMA_LOCATION,
+  SCHEMA_LOCATION_CREDIT_NOTE,
+  SCHEMA_LOCATION_DEBIT_NOTE,
+  UBL_VERSION,
+} from "./namespaces.js";
 
 /** Set of document type codes that produce a CreditNote XML root element */
-const CREDIT_NOTE_DOCUMENTS: ReadonlySet<string> = new Set([DocumentType.NOTA_CREDITO, DocumentType.NOTA_AJUSTE_CREDITO_DOC_EQUIV]);
+const CREDIT_NOTE_DOCUMENTS: ReadonlySet<string> = new Set([
+  DocumentType.NOTA_CREDITO,
+  DocumentType.NOTA_AJUSTE_CREDITO_DOC_EQUIV,
+]);
 
 /** Set of document type codes that produce a DebitNote XML root element */
-const DEBIT_NOTE_DOCUMENTS: ReadonlySet<string> = new Set([DocumentType.NOTA_DEBITO, DocumentType.NOTA_AJUSTE_DEBITO_DOC_EQUIV]);
+const DEBIT_NOTE_DOCUMENTS: ReadonlySet<string> = new Set([
+  DocumentType.NOTA_DEBITO,
+  DocumentType.NOTA_AJUSTE_DEBITO_DOC_EQUIV,
+]);
 
 /**
  * Internal configuration that varies by document type (Invoice, CreditNote, DebitNote).
@@ -115,18 +125,15 @@ function profileIdForDocumentType(docType: string): string {
  * @param tagName - UBL element name ("AccountingSupplierParty" or "AccountingCustomerParty")
  * @param party - Party data containing identification, tax info, address, and contact
  */
-function addPartyNode(
-  parent: XMLBuilder,
-  tagName: string,
-  party: Party,
-): void {
+function addPartyNode(parent: XMLBuilder, tagName: string, party: Party): void {
   const partyNode = parent.ele(NS.CAC, tagName);
   partyNode.ele(NS.CBC, "AdditionalAccountID").txt(party.personType);
   const innerParty = partyNode.ele(NS.CAC, "Party");
 
   // PartyIdentification — required for persona natural (FAK61)
   const partyId = innerParty.ele(NS.CAC, "PartyIdentification");
-  partyId.ele(NS.CBC, "ID")
+  partyId
+    .ele(NS.CBC, "ID")
     .att("schemeAgencyID", "195")
     .att("schemeAgencyName", "CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)")
     .att("schemeID", party.identification.dv ?? "")
@@ -154,9 +161,7 @@ function addPartyNode(
   companyId.att("schemeName", party.identification.type);
   companyId.txt(party.identification.number);
 
-  taxScheme.ele(NS.CBC, "TaxLevelCode")
-    .att("listName", "49")
-    .txt(party.taxInfo.taxLevelCode);
+  taxScheme.ele(NS.CBC, "TaxLevelCode").att("listName", "49").txt(party.taxInfo.taxLevelCode);
 
   if (party.taxInfo.address) {
     const regAddress = taxScheme.ele(NS.CAC, "RegistrationAddress");
@@ -165,9 +170,9 @@ function addPartyNode(
 
   const taxSchemeInner = taxScheme.ele(NS.CAC, "TaxScheme");
   taxSchemeInner.ele(NS.CBC, "ID").txt(party.taxInfo.taxScheme.code);
-  taxSchemeInner.ele(NS.CBC, "Name").txt(
-    party.taxInfo.taxScheme.name ?? TaxCodeName[party.taxInfo.taxScheme.code] ?? "",
-  );
+  taxSchemeInner
+    .ele(NS.CBC, "Name")
+    .txt(party.taxInfo.taxScheme.name ?? TaxCodeName[party.taxInfo.taxScheme.code] ?? "");
 
   // PartyLegalEntity
   const legalEntity = innerParty.ele(NS.CAC, "PartyLegalEntity");
@@ -213,16 +218,19 @@ function addPartyNode(
  * @param parent - Parent XML builder node (e.g., PhysicalLocation)
  * @param address - Address data with street, city, department, and country info
  */
-function addAddressNode(parent: XMLBuilder, address: {
-  street: string;
-  cityCode: string;
-  cityName: string;
-  departmentCode: string;
-  departmentName: string;
-  countryCode?: string;
-  countryName?: string;
-  postalZone?: string;
-}): void {
+function addAddressNode(
+  parent: XMLBuilder,
+  address: {
+    street: string;
+    cityCode: string;
+    cityName: string;
+    departmentCode: string;
+    departmentName: string;
+    countryCode?: string;
+    countryName?: string;
+    postalZone?: string;
+  },
+): void {
   const addrNode = parent.ele(NS.CAC, "Address");
   addAddressFields(addrNode, address);
 }
@@ -234,16 +242,19 @@ function addAddressNode(parent: XMLBuilder, address: {
  * @param addrNode - Address XML builder node to populate with fields
  * @param address - Address data with street, city, department, and country info
  */
-function addAddressFields(addrNode: XMLBuilder, address: {
-  street: string;
-  cityCode: string;
-  cityName: string;
-  departmentCode: string;
-  departmentName: string;
-  countryCode?: string;
-  countryName?: string;
-  postalZone?: string;
-}): void {
+function addAddressFields(
+  addrNode: XMLBuilder,
+  address: {
+    street: string;
+    cityCode: string;
+    cityName: string;
+    departmentCode: string;
+    departmentName: string;
+    countryCode?: string;
+    countryName?: string;
+    postalZone?: string;
+  },
+): void {
   addrNode.ele(NS.CBC, "ID").txt(address.cityCode);
   addrNode.ele(NS.CBC, "CityName").txt(address.cityName);
   if (address.postalZone) {
@@ -257,7 +268,8 @@ function addAddressFields(addrNode: XMLBuilder, address: {
 
   const country = addrNode.ele(NS.CAC, "Country");
   country.ele(NS.CBC, "IdentificationCode").txt(address.countryCode ?? "CO");
-  country.ele(NS.CBC, "Name")
+  country
+    .ele(NS.CBC, "Name")
     .att("languageID", "es")
     .txt(address.countryName ?? "Colombia");
 }
@@ -272,27 +284,24 @@ function addAddressFields(addrNode: XMLBuilder, address: {
  */
 function addTaxTotalNode(parent: XMLBuilder, taxTotal: TaxTotal, currency: string): void {
   const node = parent.ele(NS.CAC, "TaxTotal");
-  node.ele(NS.CBC, "TaxAmount")
-    .att("currencyID", currency)
-    .txt(formatAmount(taxTotal.taxAmount));
+  node.ele(NS.CBC, "TaxAmount").att("currencyID", currency).txt(formatAmount(taxTotal.taxAmount));
 
   for (const subtotal of taxTotal.subtotals) {
     const sub = node.ele(NS.CAC, "TaxSubtotal");
-    sub.ele(NS.CBC, "TaxableAmount")
+    sub
+      .ele(NS.CBC, "TaxableAmount")
       .att("currencyID", currency)
       .txt(formatAmount(subtotal.taxableAmount));
-    sub.ele(NS.CBC, "TaxAmount")
-      .att("currencyID", currency)
-      .txt(formatAmount(subtotal.taxAmount));
+    sub.ele(NS.CBC, "TaxAmount").att("currencyID", currency).txt(formatAmount(subtotal.taxAmount));
 
     const taxCategory = sub.ele(NS.CAC, "TaxCategory");
     taxCategory.ele(NS.CBC, "Percent").txt(formatPercent(subtotal.percent));
 
     const scheme = taxCategory.ele(NS.CAC, "TaxScheme");
     scheme.ele(NS.CBC, "ID").txt(subtotal.taxScheme.code);
-    scheme.ele(NS.CBC, "Name").txt(
-      subtotal.taxScheme.name ?? TaxCodeName[subtotal.taxScheme.code] ?? "",
-    );
+    scheme
+      .ele(NS.CBC, "Name")
+      .txt(subtotal.taxScheme.name ?? TaxCodeName[subtotal.taxScheme.code] ?? "");
   }
 }
 
@@ -304,23 +313,15 @@ function addTaxTotalNode(parent: XMLBuilder, taxTotal: TaxTotal, currency: strin
  * @param ac - Allowance/charge data with amounts and reason
  * @param currency - ISO 4217 currency code for amount attributes
  */
-function addAllowanceChargeNode(
-  parent: XMLBuilder,
-  ac: AllowanceCharge,
-  currency: string,
-): void {
+function addAllowanceChargeNode(parent: XMLBuilder, ac: AllowanceCharge, currency: string): void {
   const node = parent.ele(NS.CAC, "AllowanceCharge");
   node.ele(NS.CBC, "ChargeIndicator").txt(ac.chargeIndicator ? "true" : "false");
   node.ele(NS.CBC, "AllowanceChargeReason").txt(ac.reason);
   if (ac.multiplierFactor !== undefined) {
     node.ele(NS.CBC, "MultiplierFactorNumeric").txt(formatPercent(ac.multiplierFactor));
   }
-  node.ele(NS.CBC, "Amount")
-    .att("currencyID", currency)
-    .txt(formatAmount(ac.amount));
-  node.ele(NS.CBC, "BaseAmount")
-    .att("currencyID", currency)
-    .txt(formatAmount(ac.baseAmount));
+  node.ele(NS.CBC, "Amount").att("currencyID", currency).txt(formatAmount(ac.amount));
+  node.ele(NS.CBC, "BaseAmount").att("currencyID", currency).txt(formatAmount(ac.baseAmount));
 }
 
 /**
@@ -337,25 +338,32 @@ function addMonetaryTotalNode(
   currency: string,
 ): void {
   const node = parent.ele(NS.CAC, "LegalMonetaryTotal");
-  node.ele(NS.CBC, "LineExtensionAmount")
+  node
+    .ele(NS.CBC, "LineExtensionAmount")
     .att("currencyID", currency)
     .txt(formatAmount(total.lineExtensionAmount));
-  node.ele(NS.CBC, "TaxExclusiveAmount")
+  node
+    .ele(NS.CBC, "TaxExclusiveAmount")
     .att("currencyID", currency)
     .txt(formatAmount(total.taxExclusiveAmount));
-  node.ele(NS.CBC, "TaxInclusiveAmount")
+  node
+    .ele(NS.CBC, "TaxInclusiveAmount")
     .att("currencyID", currency)
     .txt(formatAmount(total.taxInclusiveAmount));
-  node.ele(NS.CBC, "AllowanceTotalAmount")
+  node
+    .ele(NS.CBC, "AllowanceTotalAmount")
     .att("currencyID", currency)
     .txt(formatAmount(total.allowanceTotalAmount));
-  node.ele(NS.CBC, "ChargeTotalAmount")
+  node
+    .ele(NS.CBC, "ChargeTotalAmount")
     .att("currencyID", currency)
     .txt(formatAmount(total.chargeTotalAmount));
-  node.ele(NS.CBC, "PrepaidAmount")
+  node
+    .ele(NS.CBC, "PrepaidAmount")
     .att("currencyID", currency)
     .txt(formatAmount(total.prepaidAmount));
-  node.ele(NS.CBC, "PayableAmount")
+  node
+    .ele(NS.CBC, "PayableAmount")
     .att("currencyID", currency)
     .txt(formatAmount(total.payableAmount));
 }
@@ -380,10 +388,12 @@ function addLineNode(
 ): void {
   const node = parent.ele(NS.CAC, lineTag);
   node.ele(NS.CBC, "ID").txt(line.id);
-  node.ele(NS.CBC, quantityTag)
+  node
+    .ele(NS.CBC, quantityTag)
     .att("unitCode", line.unitCode ?? "EA")
     .txt(String(line.quantity));
-  node.ele(NS.CBC, "LineExtensionAmount")
+  node
+    .ele(NS.CBC, "LineExtensionAmount")
     .att("currencyID", currency)
     .txt(formatAmount(line.lineExtensionAmount));
 
@@ -403,10 +413,9 @@ function addLineNode(
 
   // Price
   const price = node.ele(NS.CAC, "Price");
-  price.ele(NS.CBC, "PriceAmount")
-    .att("currencyID", currency)
-    .txt(formatAmount(line.price));
-  price.ele(NS.CBC, "BaseQuantity")
+  price.ele(NS.CBC, "PriceAmount").att("currencyID", currency).txt(formatAmount(line.price));
+  price
+    .ele(NS.CBC, "BaseQuantity")
     .att("unitCode", line.unitCode ?? "EA")
     .txt("1.00");
 }
@@ -462,34 +471,42 @@ function addDianExtensions(
 
   // InvoiceSource
   const source = dianExt.ele(NS.STS, "InvoiceSource");
-  source.ele(NS.CBC, "IdentificationCode")
+  source
+    .ele(NS.CBC, "IdentificationCode")
     .att("listAgencyID", "6")
     .att("listAgencyName", "United Nations Economic Commission for Europe")
-    .att("listSchemeURI", "urn:oasis:names:specification:ubl:codelist:gc:CountryIdentificationCode-2.1")
+    .att(
+      "listSchemeURI",
+      "urn:oasis:names:specification:ubl:codelist:gc:CountryIdentificationCode-2.1",
+    )
     .txt("CO");
 
   // SoftwareProvider — use supplier's DV for the provider identification
   const provider = dianExt.ele(NS.STS, "SoftwareProvider");
-  provider.ele(NS.STS, "ProviderID")
+  provider
+    .ele(NS.STS, "ProviderID")
     .att("schemeAgencyID", "195")
     .att("schemeAgencyName", "CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)")
     .att("schemeID", doc.supplier.identification.dv ?? "")
     .att("schemeName", doc.supplier.identification.type)
     .txt(doc.software.providerNit);
-  provider.ele(NS.STS, "SoftwareID")
+  provider
+    .ele(NS.STS, "SoftwareID")
     .att("schemeAgencyID", "195")
     .att("schemeAgencyName", "CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)")
     .txt(doc.software.id);
 
   // SoftwareSecurityCode
-  dianExt.ele(NS.STS, "SoftwareSecurityCode")
+  dianExt
+    .ele(NS.STS, "SoftwareSecurityCode")
     .att("schemeAgencyID", "195")
     .att("schemeAgencyName", "CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)")
     .txt(softwareSecurityCode);
 
   // AuthorizationProvider
   const authProvider = dianExt.ele(NS.STS, "AuthorizationProvider");
-  authProvider.ele(NS.STS, "AuthorizationProviderID")
+  authProvider
+    .ele(NS.STS, "AuthorizationProviderID")
     .att("schemeAgencyID", "195")
     .att("schemeAgencyName", "CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)")
     .att("schemeID", "4")
@@ -569,15 +586,13 @@ export interface BuildXmlResult {
  * @param softwareSecurityCode - Pre-computed SHA-384 software security code
  * @returns Pretty-printed UBL 2.1 XML string
  */
-function buildDocumentXml(
-  doc: DianDocument,
-  uuid: string,
-  softwareSecurityCode: string,
-): string {
+function buildDocumentXml(doc: DianDocument, uuid: string, softwareSecurityCode: string): string {
   const config = getDocumentConfig(doc.documentType);
 
-  const root = create({ version: "1.0", encoding: "UTF-8", standalone: false })
-    .ele(config.ns, config.rootName);
+  const root = create({ version: "1.0", encoding: "UTF-8", standalone: false }).ele(
+    config.ns,
+    config.rootName,
+  );
 
   // Namespace declarations
   root.att("xmlns:cac", NS.CAC);
@@ -618,10 +633,10 @@ function buildDocumentXml(
   root.ele(NS.CBC, "ID").txt(doc.id);
 
   // 7. UUID — CUFE or CUDE
-  const uuidSchemeName = doc.documentType === DocumentType.FACTURA_VENTA
-    ? "CUFE-SHA384"
-    : "CUDE-SHA384";
-  root.ele(NS.CBC, "UUID")
+  const uuidSchemeName =
+    doc.documentType === DocumentType.FACTURA_VENTA ? "CUFE-SHA384" : "CUDE-SHA384";
+  root
+    .ele(NS.CBC, "UUID")
     .att("schemeID", doc.environment)
     .att("schemeName", uuidSchemeName)
     .txt(uuid);
@@ -668,9 +683,7 @@ function buildDocumentXml(
     const billingRef = root.ele(NS.CAC, "BillingReference");
     const invoiceRef = billingRef.ele(NS.CAC, "InvoiceDocumentReference");
     invoiceRef.ele(NS.CBC, "ID").txt(doc.billingReference.id);
-    invoiceRef.ele(NS.CBC, "UUID")
-      .att("schemeName", "CUFE-SHA384")
-      .txt(doc.billingReference.uuid);
+    invoiceRef.ele(NS.CBC, "UUID").att("schemeName", "CUFE-SHA384").txt(doc.billingReference.uuid);
     invoiceRef.ele(NS.CBC, "IssueDate").txt(formatDate(doc.billingReference.issueDate));
   }
 

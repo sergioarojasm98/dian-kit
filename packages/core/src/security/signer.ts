@@ -325,7 +325,7 @@ export async function signXml(options: SignXmlOptions): Promise<SignXmlResult> {
  *
  * @internal
  */
-function findSignatureExtensionContent(doc: globalThis.Document): globalThis.Element | null {
+function _findSignatureExtensionContent(doc: globalThis.Document): globalThis.Element | null {
   const nsExt = "urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2";
 
   const extensions = doc.getElementsByTagNameNS(nsExt, "UBLExtension");

@@ -67,7 +67,8 @@ export const UBL_VERSION = "UBL 2.1";
 export const DIAN_PROFILE_INVOICE = "DIAN 2.1: Factura Electrónica de Venta";
 
 /** DIAN profile identifier for support documents in acquisitions from non-invoicing parties */
-export const DIAN_PROFILE_POS = "DIAN 2.1: documento soporte en adquisiciones efectuadas a sujetos no obligados a expedir factura o documento equivalente";
+export const DIAN_PROFILE_POS =
+  "DIAN 2.1: documento soporte en adquisiciones efectuadas a sujetos no obligados a expedir factura o documento equivalente";
 
 /**
  * Profile ID mapping per document type (CustomizationID / ProfileID).

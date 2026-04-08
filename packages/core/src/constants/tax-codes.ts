@@ -74,7 +74,7 @@ export const TaxCodeName: Record<string, string> = {
   "05": "ReteIVA",
   "06": "ReteRenta",
   "07": "ReteICA",
-  "ZZ": "No Aplica",
+  ZZ: "No Aplica",
 };
 
 /** Standard IVA (Value Added Tax) percentage rates allowed by Colombian tax law */

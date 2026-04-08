@@ -39,8 +39,7 @@ export const DianSignaturePolicy = {
   /** URL to the official DIAN electronic invoicing signature policy PDF (v2) */
   URL: "https://facturaelectronica.dian.gov.co/politicadefirma/v2/politicadefirmav2.pdf",
   /** Human-readable description of the Colombian electronic invoicing signature policy */
-  DESCRIPTION:
-    "Política de firma para facturas electrónicas de la República de Colombia.",
+  DESCRIPTION: "Política de firma para facturas electrónicas de la República de Colombia.",
 } as const;
 
 /**

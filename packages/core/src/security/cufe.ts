@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { CUFE_DOCUMENTS } from "../constants/document-types.js";
 import { CUFE_TAX_ORDER } from "../constants/tax-codes.js";
 import type { DianDocument } from "../types/common.js";
-import { formatAmount, formatDate, formatTime, truncateDecimals } from "../utils/amount.js";
+import { formatDate, formatTime, truncateDecimals } from "../utils/amount.js";
 
 /**
  * Computes the SHA-384 cryptographic hash of an input string and returns
@@ -77,7 +77,7 @@ function getSecretKey(doc: DianDocument): string {
     if (!doc.numbering.technicalKey) {
       throw new Error(
         `[DIAN-KIT] La clave técnica (technicalKey) es obligatoria para documentos tipo ${doc.documentType}. ` +
-        "Se obtiene de la resolución de numeración asignada por la DIAN al habilitarse.",
+          "Se obtiene de la resolución de numeración asignada por la DIAN al habilitarse.",
       );
     }
     return doc.numbering.technicalKey;

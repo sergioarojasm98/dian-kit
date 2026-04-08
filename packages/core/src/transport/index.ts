@@ -22,7 +22,13 @@
  * @module transport
  */
 
-export { getAcquirer, getNumberingRange, getStatus, getStatusZip, sendBill } from "./dian-client.js";
+export {
+  getAcquirer,
+  getNumberingRange,
+  getStatus,
+  getStatusZip,
+  sendBill,
+} from "./dian-client.js";
 export type {
   DianAcquirerResponse,
   DianNumberingRange,

@@ -18,22 +18,21 @@
  */
 
 export {
-  sha384,
+  type CertificateData,
+  generateTestP12,
+  loadP12,
+} from "./certificate.js";
+export {
+  buildCufeInput,
+  type CufeInput,
+  concatenateCufeFields,
   generateCufe,
   generateSoftwareSecurityCode,
-  buildCufeInput,
-  concatenateCufeFields,
-  type CufeInput,
+  sha384,
 } from "./cufe.js";
 
 export {
-  loadP12,
-  generateTestP12,
-  type CertificateData,
-} from "./certificate.js";
-
-export {
-  signXml,
   type SignXmlOptions,
   type SignXmlResult,
+  signXml,
 } from "./signer.js";

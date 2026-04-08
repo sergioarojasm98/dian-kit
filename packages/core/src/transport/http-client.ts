@@ -7,10 +7,7 @@ import { DianTransportError } from "./types.js";
  * - `vpfe.dian.gov.co` -- production environment
  * - `vpfe-hab.dian.gov.co` -- sandbox (habilitacion) environment
  */
-const ALLOWED_DIAN_HOSTS = [
-  "vpfe.dian.gov.co",
-  "vpfe-hab.dian.gov.co",
-];
+const ALLOWED_DIAN_HOSTS = ["vpfe.dian.gov.co", "vpfe-hab.dian.gov.co"];
 
 /**
  * Validates that the target URL belongs to an official DIAN endpoint by checking
@@ -91,7 +88,7 @@ export async function postSoap(options: PostSoapOptions): Promise<string> {
       method: "POST",
       headers: {
         "Content-Type": `application/soap+xml; charset=utf-8; action="${soapAction}"`,
-        "Accept": "application/soap+xml, text/xml",
+        Accept: "application/soap+xml, text/xml",
       },
       body,
       signal: controller.signal,
@@ -102,7 +99,7 @@ export async function postSoap(options: PostSoapOptions): Promise<string> {
     if (!response.ok) {
       throw new DianTransportError(
         `El servidor DIAN retornó HTTP ${response.status}. ` +
-        `Verifique las credenciales y el entorno. URL: ${url}`,
+          `Verifique las credenciales y el entorno. URL: ${url}`,
         response.status,
         responseText,
       );

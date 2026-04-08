@@ -344,8 +344,7 @@ export function buildGetStatusEnvelope(
   endpointUrl: string,
   auth: SoapAuthConfig,
 ): string {
-  const body =
-    `<wcf:GetStatus>` + `<wcf:trackId>${escapeXml(trackId)}</wcf:trackId>` + `</wcf:GetStatus>`;
+  const body = `<wcf:GetStatus><wcf:trackId>${escapeXml(trackId)}</wcf:trackId></wcf:GetStatus>`;
   return buildSignedSoapEnvelope(body, "GetStatus", endpointUrl, auth);
 }
 

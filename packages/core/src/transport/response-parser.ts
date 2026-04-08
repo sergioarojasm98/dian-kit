@@ -27,9 +27,15 @@ function parseXml(rawXml: string): Document {
   // para capturar errores de forma thread-safe.
   const parser = new DOMParser({
     errorHandler: {
-      error: (msg: string) => { parseErrorMessage ??= msg; },
-      fatalError: (msg: string) => { parseErrorMessage ??= msg; },
-      warning: () => { /* ignorar warnings */ },
+      error: (msg: string) => {
+        parseErrorMessage ??= msg;
+      },
+      fatalError: (msg: string) => {
+        parseErrorMessage ??= msg;
+      },
+      warning: () => {
+        /* ignorar warnings */
+      },
     },
   });
 

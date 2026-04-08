@@ -97,7 +97,7 @@ export function loadP12(p12Buffer: Buffer, password: string): CertificateData {
   if (!keyBag?.key) {
     throw new Error(
       "[DIAN-KIT] No se encontró la clave privada en el archivo .p12. " +
-      "Verifica que el archivo no esté dañado y que la contraseña sea correcta.",
+        "Verifica que el archivo no esté dañado y que la contraseña sea correcta.",
     );
   }
 
@@ -106,7 +106,7 @@ export function loadP12(p12Buffer: Buffer, password: string): CertificateData {
   if (!certBag?.cert) {
     throw new Error(
       "[DIAN-KIT] No se encontró el certificado en el archivo .p12. " +
-      "El archivo debe contener un certificado X.509 válido.",
+        "El archivo debe contener un certificado X.509 válido.",
     );
   }
 
@@ -117,7 +117,9 @@ export function loadP12(p12Buffer: Buffer, password: string): CertificateData {
   const certDerBytes = forge.asn1.toDer(forge.pki.certificateToAsn1(cert)).getBytes();
   const certificateDerBase64 = forge.util.encode64(certDerBytes);
 
-  const certDigest = createHash("sha256").update(Buffer.from(certDerBytes, "binary")).digest("base64");
+  const certDigest = createHash("sha256")
+    .update(Buffer.from(certDerBytes, "binary"))
+    .digest("base64");
 
   const issuerName = cert.issuer.attributes
     .map((attr: forge.pki.CertificateField) => `${attr.shortName}=${attr.value}`)
@@ -125,7 +127,7 @@ export function loadP12(p12Buffer: Buffer, password: string): CertificateData {
     .join(", ");
 
   const serialNumber = cert.serialNumber;
-  const subjectName = cert.subject.getField("CN")?.value as string ?? "";
+  const subjectName = (cert.subject.getField("CN")?.value as string) ?? "";
 
   return {
     privateKeyPem,

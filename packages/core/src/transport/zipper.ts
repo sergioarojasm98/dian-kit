@@ -37,19 +37,13 @@ export function createXmlZip(
   documentNumber: string,
 ): Buffer {
   if (!signedXml) {
-    throw new DianTransportError(
-      "El XML firmado no puede estar vacío.",
-    );
+    throw new DianTransportError("El XML firmado no puede estar vacío.");
   }
   if (!supplierNit) {
-    throw new DianTransportError(
-      "El NIT del emisor no puede estar vacío.",
-    );
+    throw new DianTransportError("El NIT del emisor no puede estar vacío.");
   }
   if (!documentNumber) {
-    throw new DianTransportError(
-      "El número del documento no puede estar vacío.",
-    );
+    throw new DianTransportError("El número del documento no puede estar vacío.");
   }
 
   const filename = `${supplierNit}${documentNumber}.xml`;

@@ -149,8 +149,7 @@ export const IdentificationType = {
 } as const;
 
 /** Union type of all valid Colombian identification document type codes */
-export type IdentificationTypeValue =
-  (typeof IdentificationType)[keyof typeof IdentificationType];
+export type IdentificationTypeValue = (typeof IdentificationType)[keyof typeof IdentificationType];
 
 /**
  * Person type codes for DIAN electronic invoicing.

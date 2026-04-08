@@ -1,7 +1,12 @@
 import { DianEndpoint, DianSoapMethod } from "../constants/dian-endpoints.js";
 import { Environment } from "../constants/document-types.js";
 import { postSoap } from "./http-client.js";
-import { parseAcquirerResponse, parseNumberingRangeResponse, parseSendResponse, parseStatusResponse } from "./response-parser.js";
+import {
+  parseAcquirerResponse,
+  parseNumberingRangeResponse,
+  parseSendResponse,
+  parseStatusResponse,
+} from "./response-parser.js";
 import {
   buildGetAcquirerEnvelope,
   buildGetNumberingRangeEnvelope,
@@ -76,7 +81,7 @@ export async function sendBill(options: SendBillOptions): Promise<DianSendRespon
   if (method === DianSoapMethod.SEND_TEST_SET_ASYNC && !testSetId) {
     throw new DianTransportError(
       "El método SendTestSetAsync requiere el campo `testSetId`. " +
-      "Este ID lo asigna DIAN durante el proceso de habilitación del software.",
+        "Este ID lo asigna DIAN durante el proceso de habilitación del software.",
     );
   }
 
@@ -184,9 +189,7 @@ export async function getNumberingRange(
  * @see {@link https://vpfe.dian.gov.co/WcfDianCustomerServices.svc | DIAN WCF Service}
  * @see {@link DianAcquirerResponse}
  */
-export async function getAcquirer(
-  options: GetAcquirerOptions,
-): Promise<DianAcquirerResponse> {
+export async function getAcquirer(options: GetAcquirerOptions): Promise<DianAcquirerResponse> {
   const { environment, timeoutMs = DEFAULT_TIMEOUT_MS } = options;
 
   const url = getServiceUrl(environment);
