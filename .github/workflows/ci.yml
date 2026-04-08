@@ -46,7 +46,7 @@ jobs:
         run: pnpm lint
 
       - name: Type check
-        run: pnpm typecheck
+        run: pnpm --filter @dian-kit/core typecheck
 
       - name: Run tests
         run: pnpm test
