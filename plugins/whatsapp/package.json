@@ -1,6 +1,6 @@
 {
   "name": "@dian-kit/plugin-whatsapp",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "WhatsApp agent for DIAN electronic invoicing — multi-tenant, Meta Cloud API, natural language",
   "type": "module",
   "main": "./dist/index.cjs",

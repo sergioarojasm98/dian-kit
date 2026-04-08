@@ -1,6 +1,6 @@
 {
   "name": "@dian-kit/ai",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Optional AI layer for dian-kit — BYOK: natural language invoicing, error explainer, compliance checker",
   "type": "module",
   "main": "./dist/index.cjs",

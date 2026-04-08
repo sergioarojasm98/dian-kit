@@ -1,6 +1,6 @@
 {
   "name": "dian-kit",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "CLI for DIAN electronic invoicing in Colombia — invoices, POS documents, AI-powered natural language",
   "type": "module",
   "bin": {
