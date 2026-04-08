@@ -36,10 +36,7 @@ Thumbs.db
 coverage/
 .nyc_output/
 
-# Changesets
-.changeset/*.md
-!.changeset/config.json
-!.changeset/README.md
+# Changesets — do NOT ignore .md files, they are needed for versioning
 
 # Logs
 *.log
