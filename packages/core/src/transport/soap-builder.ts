@@ -1,6 +1,6 @@
 import { createHash, randomUUID, sign } from "node:crypto";
 
-import type { SoapAuthConfig, GetAcquirerOptions, GetNumberingRangeOptions } from "./types.js";
+import type { GetAcquirerOptions, GetNumberingRangeOptions, SoapAuthConfig } from "./types.js";
 
 /** SOAP 1.2 envelope namespace */
 const NS_SOAP = "http://www.w3.org/2003/05/soap-envelope";
@@ -9,11 +9,9 @@ const NS_WCF = "http://wcf.dian.colombia";
 /** WS-Addressing namespace */
 const NS_WSA = "http://www.w3.org/2005/08/addressing";
 /** WS-Security Security Extensions 1.0 namespace */
-const NS_WSSE =
-  "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd";
+const NS_WSSE = "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd";
 /** WS-Security Utility 1.0 namespace */
-const NS_WSU =
-  "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd";
+const NS_WSU = "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd";
 /** XML Digital Signature namespace */
 const NS_DS = "http://www.w3.org/2000/09/xmldsig#";
 /** Exclusive C14N namespace */
@@ -347,9 +345,7 @@ export function buildGetStatusEnvelope(
   auth: SoapAuthConfig,
 ): string {
   const body =
-    `<wcf:GetStatus>` +
-    `<wcf:trackId>${escapeXml(trackId)}</wcf:trackId>` +
-    `</wcf:GetStatus>`;
+    `<wcf:GetStatus>` + `<wcf:trackId>${escapeXml(trackId)}</wcf:trackId>` + `</wcf:GetStatus>`;
   return buildSignedSoapEnvelope(body, "GetStatus", endpointUrl, auth);
 }
 

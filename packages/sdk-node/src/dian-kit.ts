@@ -1,10 +1,14 @@
 import {
-  DianDocumentSchema,
-  DocumentType,
-  OperationType,
   buildCreditNoteXml,
   buildDebitNoteXml,
   buildInvoiceXml,
+  type DianAcquirerResponse,
+  type DianDocument,
+  DianDocumentSchema,
+  type DianNumberingRangeResponse,
+  type DianSendResponse,
+  type DianStatusResponse,
+  DocumentType,
   generateCufe,
   generateSoftwareSecurityCode,
   getAcquirer,
@@ -12,13 +16,9 @@ import {
   getStatus,
   getStatusZip,
   loadP12,
+  OperationType,
   sendBill,
   signXml,
-  type DianAcquirerResponse,
-  type DianDocument,
-  type DianNumberingRangeResponse,
-  type DianSendResponse,
-  type DianStatusResponse,
 } from "@dian-kit/core";
 
 import type {
@@ -501,9 +501,7 @@ export class DianKit {
    * }
    * ```
    */
-  async getNumberingRange(
-    accountCodeT?: string,
-  ): Promise<DianNumberingRangeResponse> {
+  async getNumberingRange(accountCodeT?: string): Promise<DianNumberingRangeResponse> {
     return getNumberingRange({
       accountCode: this.config.supplier.identification.number,
       accountCodeT: accountCodeT ?? this.config.supplier.identification.number,

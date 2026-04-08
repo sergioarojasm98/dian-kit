@@ -119,7 +119,33 @@ export type {
 // Re-export constants so users don't need @dian-kit/core for basic usage.
 // ---------------------------------------------------------------------------
 
+/**
+ * Error class thrown when DIAN SOAP communication fails.
+ *
+ * Covers HTTP errors, network timeouts, and SOAP faults returned by
+ * DIAN's `WcfDianCustomerServices` web service.
+ *
+ * @see {@link DianTransportError.rawResponse} for the (truncated) SOAP response body.
+ */
+/**
+ * Pre-built anonymous buyer (Consumidor Final) for retail / POS invoices.
+ *
+ * Use this as the `customer` when the buyer's identity is not required
+ * (e.g., point-of-sale transactions under the legal threshold).
+ *
+ * @example
+ * ```typescript
+ * import { CONSUMIDOR_FINAL } from 'dian-kit';
+ *
+ * const invoice = await kit.createInvoice({
+ *   ...invoiceData,
+ *   customer: { ...CONSUMIDOR_FINAL, fiscalResponsibilities: ['R-99-PN'], ... },
+ * });
+ * ```
+ */
 export {
+  CONSUMIDOR_FINAL,
+  DianTransportError,
   /**
    * DIAN document type codes (e.g., `"01"` for Factura de Venta, `"91"` for Nota Credito).
    *
@@ -155,31 +181,3 @@ export {
    */
   PersonType,
 } from "@dian-kit/core";
-
-/**
- * Error class thrown when DIAN SOAP communication fails.
- *
- * Covers HTTP errors, network timeouts, and SOAP faults returned by
- * DIAN's `WcfDianCustomerServices` web service.
- *
- * @see {@link DianTransportError.rawResponse} for the (truncated) SOAP response body.
- */
-export { DianTransportError } from "@dian-kit/core";
-
-/**
- * Pre-built anonymous buyer (Consumidor Final) for retail / POS invoices.
- *
- * Use this as the `customer` when the buyer's identity is not required
- * (e.g., point-of-sale transactions under the legal threshold).
- *
- * @example
- * ```typescript
- * import { CONSUMIDOR_FINAL } from 'dian-kit';
- *
- * const invoice = await kit.createInvoice({
- *   ...invoiceData,
- *   customer: { ...CONSUMIDOR_FINAL, fiscalResponsibilities: ['R-99-PN'], ... },
- * });
- * ```
- */
-export { CONSUMIDOR_FINAL } from "@dian-kit/core";

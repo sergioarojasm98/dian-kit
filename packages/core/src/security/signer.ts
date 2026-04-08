@@ -1,7 +1,7 @@
 import * as crypto from "node:crypto";
 import { DOMParser, XMLSerializer } from "@xmldom/xmldom";
-import { setNodeDependencies } from "xml-core";
 import * as xadesjs from "xadesjs";
+import { setNodeDependencies } from "xml-core";
 import * as xmldsigjs from "xmldsigjs";
 import xpath from "xpath";
 
@@ -251,42 +251,37 @@ export async function signXml(options: SignXmlOptions): Promise<SignXmlResult> {
     publicExponent: new Uint8Array([1, 0, 1]),
   };
 
-  const signature = await signedXml.Sign(
-    algorithm,
-    privateKey,
-    xmlDoc,
-    {
-      references: [
-        // Reference 0: document (enveloped signature)
-        {
-          uri: "",
-          hash: "SHA-256",
-          transforms: ["enveloped"],
-        },
-        // Reference 1: KeyInfo
-        {
-          uri: `#${keyInfoId}`,
-          hash: "SHA-256",
-        },
-      ],
-      // Signature policy (DIAN requirement for XAdES-EPES)
-      policy: {
+  const signature = await signedXml.Sign(algorithm, privateKey, xmlDoc, {
+    references: [
+      // Reference 0: document (enveloped signature)
+      {
+        uri: "",
         hash: "SHA-256",
-        identifier: {
-          value: DIAN_POLICY_URL,
-          description: DIAN_POLICY_DESCRIPTION,
-          qualifier: "OIDAsURI",
-        },
-        digestValue: policyHashBase64 ?? DIAN_POLICY_HASH_BASE64,
+        transforms: ["enveloped"],
       },
-      signingTime: { value: adjustSigningTimeForLocalDate(options.signingTime ?? new Date()) },
-      signerRole: { claimed: ["supplier"] },
-      signingCertificate: certificate.certificateDerBase64,
-      productionPlace: {
-        country: "Colombia",
+      // Reference 1: KeyInfo
+      {
+        uri: `#${keyInfoId}`,
+        hash: "SHA-256",
       },
+    ],
+    // Signature policy (DIAN requirement for XAdES-EPES)
+    policy: {
+      hash: "SHA-256",
+      identifier: {
+        value: DIAN_POLICY_URL,
+        description: DIAN_POLICY_DESCRIPTION,
+        qualifier: "OIDAsURI",
+      },
+      digestValue: policyHashBase64 ?? DIAN_POLICY_HASH_BASE64,
     },
-  );
+    signingTime: { value: adjustSigningTimeForLocalDate(options.signingTime ?? new Date()) },
+    signerRole: { claimed: ["supplier"] },
+    signingCertificate: certificate.certificateDerBase64,
+    productionPlace: {
+      country: "Colombia",
+    },
+  });
 
   // Place signature in ext:UBLExtensions/ext:UBLExtension[2]/ext:ExtensionContent
   // IMPORTANT: We insert the signature as a string into the original XML rather

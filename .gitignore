@@ -59,3 +59,6 @@ wheels/
 
 # AI tools - local per-developer files (NOT shared)
 # .cursor/rules/ and memory-bank/ ARE committed (team context)
+.claude-flow/
+.swarm/
+.mcp.json
