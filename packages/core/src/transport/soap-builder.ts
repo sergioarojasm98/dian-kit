@@ -100,14 +100,16 @@ function toUtcIso(date: Date): string {
  * Namespace declarations are sorted lexicographically by prefix in Exclusive C14N.
  */
 function canonicalizeToElement(toId: string, endpointUrl: string): string {
-  // Exclusive C14N sorts namespace declarations by local prefix name.
-  // Order: soap, wcf, wsa, wsu (alphabetical by prefix)
+  // Exclusive C14N: namespace declarations first (sorted by prefix),
+  // then attributes (sorted by namespace URI, then local name).
+  // Namespaces included: wsa, wsu (visibly utilized) + soap, wcf (InclusiveNamespaces PrefixList)
   return (
-    `<wsa:To wsu:Id="${toId}"` +
+    `<wsa:To` +
     ` xmlns:soap="${NS_SOAP}"` +
     ` xmlns:wcf="${NS_WCF}"` +
     ` xmlns:wsa="${NS_WSA}"` +
     ` xmlns:wsu="${NS_WSU}"` +
+    ` wsu:Id="${toId}"` +
     `>${endpointUrl}</wsa:To>`
   );
 }
@@ -124,17 +126,19 @@ function canonicalizeToElement(toId: string, endpointUrl: string): string {
  * Namespace declarations are sorted lexicographically by prefix.
  */
 function canonicalizeSignedInfo(toId: string, digestValue: string): string {
-  // Namespace order: ds, ec, soap, wcf, wsa (alphabetical by prefix)
+  // Exclusive C14N: namespace declarations sorted by prefix.
+  // At SignedInfo level: ds (visibly utilized) + soap, wcf, wsa (InclusiveNamespaces PrefixList)
+  // ec is NOT in PrefixList — it appears on each InclusiveNamespaces element where visibly utilized.
   return (
-    `<ds:SignedInfo xmlns:ds="${NS_DS}" xmlns:ec="${NS_EC}" xmlns:soap="${NS_SOAP}" xmlns:wcf="${NS_WCF}" xmlns:wsa="${NS_WSA}">` +
+    `<ds:SignedInfo xmlns:ds="${NS_DS}" xmlns:soap="${NS_SOAP}" xmlns:wcf="${NS_WCF}" xmlns:wsa="${NS_WSA}">` +
     `<ds:CanonicalizationMethod Algorithm="${NS_EC}">` +
-    `<ec:InclusiveNamespaces PrefixList="wsa soap wcf"></ec:InclusiveNamespaces>` +
+    `<ec:InclusiveNamespaces xmlns:ec="${NS_EC}" PrefixList="wsa soap wcf"></ec:InclusiveNamespaces>` +
     `</ds:CanonicalizationMethod>` +
     `<ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"></ds:SignatureMethod>` +
     `<ds:Reference URI="#${toId}">` +
     `<ds:Transforms>` +
     `<ds:Transform Algorithm="${NS_EC}">` +
-    `<ec:InclusiveNamespaces PrefixList="soap wcf"></ec:InclusiveNamespaces>` +
+    `<ec:InclusiveNamespaces xmlns:ec="${NS_EC}" PrefixList="soap wcf"></ec:InclusiveNamespaces>` +
     `</ds:Transform>` +
     `</ds:Transforms>` +
     `<ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"></ds:DigestMethod>` +

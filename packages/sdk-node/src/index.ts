@@ -69,6 +69,8 @@ export type {
   BillingReference,
   /** Parsed PKCS#12 certificate data (private key, cert, chain). */
   CertificateData,
+  /** Corporate registration scheme (prefix for FAB10a compliance). */
+  CorporateRegistration,
   /** Response from DIAN's GetAcquirer SOAP method. */
   DianAcquirerResponse,
   /** Single numbering range returned by DIAN. */
@@ -99,6 +101,8 @@ export type {
   PartyTaxInfo,
   /** Payment form and method for the document. */
   PaymentMeans,
+  /** Individual person info for natural persons (FAK61 compliance). */
+  PersonInfo,
   /** WS-Security Signature authentication configuration for DIAN SOAP API. */
   SoapAuthConfig,
   /** DIAN-registered software information. */

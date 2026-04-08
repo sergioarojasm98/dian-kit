@@ -282,7 +282,10 @@ describe("DianKit", () => {
       expect(doc.operationType).toBe(OperationType.ESTANDAR);
       expect(doc.environment).toBe(Environment.HABILITACION);
       expect(doc.id).toBe("SETP990000001");
-      expect(doc.supplier).toEqual(testSupplier);
+      expect(doc.supplier).toEqual({
+        ...testSupplier,
+        corporateRegistration: { prefix: "SETP" },
+      });
       expect(doc.customer).toEqual(testCustomer);
     });
 
@@ -306,12 +309,13 @@ describe("DianKit", () => {
       );
     });
 
-    it("signs XML with loaded certificate", async () => {
+    it("signs XML with loaded certificate and signingTime from issueDate", async () => {
       await kit.createInvoice(testInvoiceInput);
 
       expect(signXml).toHaveBeenCalledWith({
         xml: "<Invoice>mock</Invoice>",
         certificate: MOCK_CERTIFICATE,
+        signingTime: baseDate,
       });
     });
 
@@ -349,6 +353,28 @@ describe("DianKit", () => {
       const doc = vi.mocked(generateCufe).mock.calls[0]![0] as DianDocument;
       expect(doc.supplier.identification.number).toBe("900123456");
       expect(doc.supplier.name).toBe("Peluquería Estilo Total");
+    });
+
+    it("auto-populates corporateRegistration.prefix from numbering config", async () => {
+      await kit.createInvoice(testInvoiceInput);
+
+      const doc = vi.mocked(generateCufe).mock.calls[0]![0] as DianDocument;
+      expect(doc.supplier.corporateRegistration).toEqual({ prefix: "SETP" });
+    });
+
+    it("preserves user-provided corporateRegistration.prefix", async () => {
+      const customConfig: DianKitConfig = {
+        ...testConfig,
+        supplier: {
+          ...testSupplier,
+          corporateRegistration: { prefix: "CUSTOM", name: "My Corp" },
+        },
+      };
+      const customKit = new DianKit(customConfig);
+      await customKit.createInvoice(testInvoiceInput);
+
+      const doc = vi.mocked(generateCufe).mock.calls[0]![0] as DianDocument;
+      expect(doc.supplier.corporateRegistration).toEqual({ prefix: "CUSTOM", name: "My Corp" });
     });
 
     it("merges software and numbering from config", async () => {

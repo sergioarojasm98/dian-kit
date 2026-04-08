@@ -24,7 +24,7 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "test": "vitest run",
+    "test": "vitest run --passWithNoTests",
     "lint": "biome check src/ webhook/ agent/ multi-tenant/",
     "lint:fix": "biome check --write src/ webhook/ agent/ multi-tenant/",
     "format": "biome format --write src/ webhook/ agent/ multi-tenant/",

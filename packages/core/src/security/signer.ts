@@ -26,7 +26,7 @@ const DIAN_POLICY_DESCRIPTION = DianSignaturePolicy.DESCRIPTION;
  *
  * @internal
  */
-const DIAN_POLICY_HASH_BASE64 = "dMoMvtcG5aIzgYo0tIsSQeVJBDnUnfSOfBpC8YsCctM=";
+const DIAN_POLICY_HASH_BASE64 = "dMoMvtcG5aIzgYo0tIsSQeVJBDnUnfSOfBpxXrmor0Y=";
 
 /**
  * Configuration options for the {@link signXml} function, specifying the
@@ -50,6 +50,9 @@ export interface SignXmlOptions {
    *  Use this if DIAN updates their signature policy PDF before this library
    *  is updated with the new hash. */
   policyHashBase64?: string;
+  /** Override the signing time. Defaults to `new Date()`.
+   *  Should match the document's issueDate to satisfy DIAN rule FAD09e. */
+  signingTime?: Date;
 }
 
 /**
@@ -115,7 +118,8 @@ async function importPrivateKey(pem: string): Promise<CryptoKey> {
 
   if (pem.includes("BEGIN RSA PRIVATE KEY")) {
     // PKCS#1 → PKCS#8 conversion via node-forge
-    const forge = await import("node-forge");
+    const forgeModule = await import("node-forge");
+    const forge = forgeModule.default ?? forgeModule;
     const rsaKey = forge.pki.privateKeyFromPem(pem);
     const pkcs8Asn1 = forge.pki.wrapRsaPrivateKey(forge.pki.privateKeyToAsn1(rsaKey));
     const derBytes = forge.asn1.toDer(pkcs8Asn1).getBytes();
@@ -201,6 +205,24 @@ async function importPrivateKey(pem: string): Promise<CryptoKey> {
  * @see {@link SignXmlResult} for the return type
  * @see {@link https://www.dian.gov.co/ | DIAN Anexo Tecnico} for the full specification
  */
+/**
+ * Adjusts a Date so that when xadesjs serializes it via `.toISOString()` (UTC),
+ * the date portion matches the local date. This prevents DIAN FAD09e rejection
+ * when the server timezone differs from Colombia time (UTC-5).
+ *
+ * xadesjs always serializes SigningTime as UTC (e.g., "2026-04-08T00:30:00Z"),
+ * but DIAN compares that date with IssueDate which is formatted in local time.
+ * Near midnight, these can be on different calendar dates.
+ *
+ * @param date - The original signing time
+ * @returns A Date adjusted so its UTC date matches the local date
+ * @internal
+ */
+function adjustSigningTimeForLocalDate(date: Date): Date {
+  const localDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0);
+  return localDate;
+}
+
 export async function signXml(options: SignXmlOptions): Promise<SignXmlResult> {
   initEngine();
 
@@ -257,7 +279,7 @@ export async function signXml(options: SignXmlOptions): Promise<SignXmlResult> {
         },
         digestValue: policyHashBase64 ?? DIAN_POLICY_HASH_BASE64,
       },
-      signingTime: { value: new Date() },
+      signingTime: { value: adjustSigningTimeForLocalDate(options.signingTime ?? new Date()) },
       signerRole: { claimed: ["supplier"] },
       signingCertificate: certificate.certificateDerBase64,
       productionPlace: {
@@ -267,25 +289,28 @@ export async function signXml(options: SignXmlOptions): Promise<SignXmlResult> {
   );
 
   // Place signature in ext:UBLExtensions/ext:UBLExtension[2]/ext:ExtensionContent
+  // IMPORTANT: We insert the signature as a string into the original XML rather
+  // than using DOM appendChild + XMLSerializer.serializeToString(). Re-serializing
+  // the DOM via @xmldom/xmldom can alter namespace declarations and whitespace,
+  // which invalidates the signature digest (causes DIAN ZE02 rejection).
   const signatureNode = signature.GetXml();
   if (!signatureNode) {
     throw new Error("[DIAN-KIT] Error generando la firma digital. El resultado está vacío.");
   }
 
-  const extensionContent = findSignatureExtensionContent(xmlDoc);
-  if (extensionContent) {
-    // Remove the placeholder comment if present
-    while (extensionContent.firstChild) {
-      extensionContent.removeChild(extensionContent.firstChild);
-    }
-    extensionContent.appendChild(signatureNode);
-  } else {
-    // Fallback: append to document element
-    xmlDoc.documentElement.appendChild(signatureNode);
-  }
-
   const serializer = new XMLSerializer();
-  const signedXmlString = serializer.serializeToString(xmlDoc);
+  const signatureXmlString = serializer.serializeToString(signatureNode);
+
+  // Replace the placeholder comment in the original XML string
+  const placeholder = "<!--FIRMA DIGITAL XAdES-BES AQUÍ-->";
+  let signedXmlString: string;
+  if (xml.includes(placeholder)) {
+    signedXmlString = xml.replace(placeholder, signatureXmlString);
+  } else {
+    // Fallback: insert before closing root tag
+    const closingTag = xml.lastIndexOf("</");
+    signedXmlString = xml.slice(0, closingTag) + signatureXmlString + xml.slice(closingTag);
+  }
 
   return { signedXml: signedXmlString };
 }

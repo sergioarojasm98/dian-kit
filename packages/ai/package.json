@@ -24,8 +24,8 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "test": "vitest run",
-    "test:unit": "vitest run --dir tests/unit",
+    "test": "vitest run --passWithNoTests",
+    "test:unit": "vitest run --passWithNoTests --dir tests/unit",
     "lint": "biome check src/",
     "lint:fix": "biome check --write src/",
     "format": "biome format --write src/",

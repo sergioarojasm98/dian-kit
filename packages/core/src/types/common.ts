@@ -95,6 +95,33 @@ export interface Party {
   email?: string;
   /** Contact phone number */
   phone?: string;
+  /** Person details — required when personType is "2" (natural person) */
+  person?: PersonInfo;
+  /** Corporate registration scheme — contains invoice prefix for supplier (FAB10a) */
+  corporateRegistration?: CorporateRegistration;
+}
+
+/**
+ * Corporate registration scheme for the supplier's PartyLegalEntity.
+ * The prefix must match the DIAN numbering authorization prefix.
+ * Required to avoid FAB10a rejection.
+ */
+export interface CorporateRegistration {
+  /** Invoice prefix matching the numbering authorization (e.g., "SETP") */
+  prefix: string;
+  /** Commercial registration number (matrícula mercantil), optional */
+  name?: string;
+}
+
+/**
+ * Individual person identification for natural persons (personType "2").
+ * Required by DIAN when the party is a natural person (FAK61 rule).
+ */
+export interface PersonInfo {
+  /** First name (primer nombre) */
+  firstName: string;
+  /** Family name / last name (primer apellido) */
+  familyName: string;
 }
 
 /**

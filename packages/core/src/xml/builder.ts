@@ -121,7 +121,17 @@ function addPartyNode(
   party: Party,
 ): void {
   const partyNode = parent.ele(NS.CAC, tagName);
+  partyNode.ele(NS.CBC, "AdditionalAccountID").txt(party.personType);
   const innerParty = partyNode.ele(NS.CAC, "Party");
+
+  // PartyIdentification — required for persona natural (FAK61)
+  const partyId = innerParty.ele(NS.CAC, "PartyIdentification");
+  partyId.ele(NS.CBC, "ID")
+    .att("schemeAgencyID", "195")
+    .att("schemeAgencyName", "CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)")
+    .att("schemeID", party.identification.dv ?? "")
+    .att("schemeName", party.identification.type)
+    .txt(party.identification.number);
 
   // PartyName
   const partyName = innerParty.ele(NS.CAC, "PartyName");
@@ -170,6 +180,15 @@ function addPartyNode(
   legalCompanyId.att("schemeName", party.identification.type);
   legalCompanyId.txt(party.identification.number);
 
+  // CorporateRegistrationScheme — contains the invoice prefix (FAB10a)
+  if (party.corporateRegistration) {
+    const corpReg = legalEntity.ele(NS.CAC, "CorporateRegistrationScheme");
+    corpReg.ele(NS.CBC, "ID").txt(party.corporateRegistration.prefix);
+    if (party.corporateRegistration.name) {
+      corpReg.ele(NS.CBC, "Name").txt(party.corporateRegistration.name);
+    }
+  }
+
   // Contact (email)
   if (party.email) {
     const contact = innerParty.ele(NS.CAC, "Contact");
@@ -177,6 +196,13 @@ function addPartyNode(
     if (party.phone) {
       contact.ele(NS.CBC, "Telephone").txt(party.phone);
     }
+  }
+
+  // Person — required for persona natural (PersonType "2") per DIAN rule FAK61
+  if (party.person) {
+    const personNode = innerParty.ele(NS.CAC, "Person");
+    personNode.ele(NS.CBC, "FirstName").txt(party.person.firstName);
+    personNode.ele(NS.CBC, "FamilyName").txt(party.person.familyName);
   }
 }
 
@@ -258,9 +284,11 @@ function addTaxTotalNode(parent: XMLBuilder, taxTotal: TaxTotal, currency: strin
     sub.ele(NS.CBC, "TaxAmount")
       .att("currencyID", currency)
       .txt(formatAmount(subtotal.taxAmount));
-    sub.ele(NS.CBC, "Percent").txt(formatPercent(subtotal.percent));
 
-    const scheme = sub.ele(NS.CAC, "TaxScheme");
+    const taxCategory = sub.ele(NS.CAC, "TaxCategory");
+    taxCategory.ele(NS.CBC, "Percent").txt(formatPercent(subtotal.percent));
+
+    const scheme = taxCategory.ele(NS.CAC, "TaxScheme");
     scheme.ele(NS.CBC, "ID").txt(subtotal.taxScheme.code);
     scheme.ele(NS.CBC, "Name").txt(
       subtotal.taxScheme.name ?? TaxCodeName[subtotal.taxScheme.code] ?? "",
@@ -440,13 +468,13 @@ function addDianExtensions(
     .att("listSchemeURI", "urn:oasis:names:specification:ubl:codelist:gc:CountryIdentificationCode-2.1")
     .txt("CO");
 
-  // SoftwareProvider
+  // SoftwareProvider — use supplier's DV for the provider identification
   const provider = dianExt.ele(NS.STS, "SoftwareProvider");
   provider.ele(NS.STS, "ProviderID")
     .att("schemeAgencyID", "195")
     .att("schemeAgencyName", "CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)")
-    .att("schemeID", "")
-    .att("schemeName", "31")
+    .att("schemeID", doc.supplier.identification.dv ?? "")
+    .att("schemeName", doc.supplier.identification.type)
     .txt(doc.software.providerNit);
   provider.ele(NS.STS, "SoftwareID")
     .att("schemeAgencyID", "195")

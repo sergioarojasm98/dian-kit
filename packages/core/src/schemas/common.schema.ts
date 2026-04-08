@@ -82,6 +82,24 @@ export const PartyTaxInfoSchema = z.object({
 });
 
 /**
+ * Validates person info for natural persons (personType "2").
+ * Required by DIAN rule FAK61 when the party is an individual.
+ */
+export const PersonInfoSchema = z.object({
+  firstName: z.string().min(1),
+  familyName: z.string().min(1),
+});
+
+/**
+ * Validates corporate registration scheme for the supplier's PartyLegalEntity.
+ * The prefix must match the DIAN numbering authorization prefix (FAB10a).
+ */
+export const CorporateRegistrationSchema = z.object({
+  prefix: z.string().min(1),
+  name: z.string().optional(),
+});
+
+/**
  * Validates a complete party (supplier or customer) with identification,
  * person type, fiscal responsibilities, tax info, address, and optional contact data.
  * Email is validated as a proper email format when provided.
@@ -95,6 +113,8 @@ export const PartySchema = z.object({
   address: AddressSchema,
   email: z.email().optional(),
   phone: z.string().optional(),
+  person: PersonInfoSchema.optional(),
+  corporateRegistration: CorporateRegistrationSchema.optional(),
 });
 
 /**

@@ -584,6 +584,16 @@ export class DianKit {
       discrepancyResponse?: DianDocument["discrepancyResponse"];
     },
   ): DianDocument {
+    // Auto-populate corporateRegistration.prefix from numbering config
+    // if not explicitly provided by the user (avoids FAB10a rejection).
+    const supplier = { ...this.config.supplier };
+    if (!supplier.corporateRegistration?.prefix) {
+      supplier.corporateRegistration = {
+        ...supplier.corporateRegistration,
+        prefix: this.config.numbering.prefix,
+      };
+    }
+
     const raw = {
       documentType: overrides.documentType,
       operationType: overrides.operationType,
@@ -592,7 +602,7 @@ export class DianKit {
       issueDate: input.issueDate,
       issueTime: input.issueTime,
       currency: input.currency ?? "COP",
-      supplier: this.config.supplier,
+      supplier,
       customer: input.customer,
       lines: input.lines,
       taxTotals: input.taxTotals,
@@ -642,6 +652,7 @@ export class DianKit {
     const { signedXml } = await signXml({
       xml,
       certificate: this.config.certificateData,
+      signingTime: doc.issueDate,
     });
 
     return {
