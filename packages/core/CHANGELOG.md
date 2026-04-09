@@ -1,5 +1,11 @@
 # @dian-kit/core
 
+## 1.0.1
+
+### Patch Changes
+
+- Initial public release to npm
+
 ## 1.0.0
 
 ### Major Changes

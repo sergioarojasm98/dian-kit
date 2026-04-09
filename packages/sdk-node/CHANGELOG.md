@@ -1,5 +1,13 @@
 # @dian-kit/sdk-node
 
+## 1.0.1
+
+### Patch Changes
+
+- Initial public release to npm
+- Updated dependencies
+  - @dian-kit/core@1.0.1
+
 ## 1.0.0
 
 ### Major Changes

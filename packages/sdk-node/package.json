@@ -1,6 +1,6 @@
 {
   "name": "@dian-kit/sdk-node",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "TypeScript/Node.js SDK for DIAN electronic invoicing with full type safety and Zod validation",
   "type": "module",
   "main": "./dist/index.cjs",
