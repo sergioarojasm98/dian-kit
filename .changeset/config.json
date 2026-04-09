@@ -7,12 +7,5 @@
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": [
-    "@dian-kit/ai",
-    "dian-kit",
-    "@dian-kit/plugin-express",
-    "@dian-kit/plugin-shopify",
-    "@dian-kit/plugin-whatsapp",
-    "@dian-kit/plugin-woocommerce"
-  ]
+  "ignore": []
 }
