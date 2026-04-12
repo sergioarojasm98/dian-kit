@@ -154,8 +154,9 @@ Para el ejemplo completo con multiples items, consulta [`examples/basic-invoice.
 ## Documentacion
 
 - [Ejemplo completo](./examples/basic-invoice.ts) -- Factura con dos items, envio y consulta de estado
-- [Documentacion tecnica (es)](./docs/es/) -- Referencia en espanol
-- [Technical documentation (en)](./docs/en/) -- English reference
+- [Guia de inicio rapido](./docs/guia-inicio-rapido.md) -- Paso a paso desde cero
+- [Guia de certificado .p12](./docs/guia-certificado.md) -- Como obtener tu certificado digital
+- [Errores comunes DIAN](./docs/errores-dian.md) -- 10+ errores con soluciones
 - [Referencia tecnica DIAN](./docs/technical-reference/) -- Especificaciones oficiales
 
 ### Recursos externos

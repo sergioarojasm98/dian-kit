@@ -22,15 +22,7 @@
       "@dian-kit/core": ["./packages/core/src/index.ts"],
       "@dian-kit/core/*": ["./packages/core/src/*"],
       "@dian-kit/sdk-node": ["./packages/sdk-node/src/index.ts"],
-      "@dian-kit/sdk-node/*": ["./packages/sdk-node/src/*"],
-      "@dian-kit/cli": ["./packages/cli/src/index.ts"],
-      "@dian-kit/cli/*": ["./packages/cli/src/*"],
-      "@dian-kit/ai": ["./packages/ai/src/index.ts"],
-      "@dian-kit/ai/*": ["./packages/ai/src/*"],
-      "@dian-kit/plugin-express": ["./plugins/express/src/index.ts"],
-      "@dian-kit/plugin-woocommerce": ["./plugins/woocommerce/src/index.ts"],
-      "@dian-kit/plugin-shopify": ["./plugins/shopify/src/index.ts"],
-      "@dian-kit/plugin-whatsapp": ["./plugins/whatsapp/src/index.ts"]
+      "@dian-kit/sdk-node/*": ["./packages/sdk-node/src/*"]
     }
   },
   "exclude": ["node_modules", "dist", "build", "coverage"]
