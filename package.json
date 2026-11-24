@@ -44,12 +44,12 @@
     "typecheck": "turbo run typecheck"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.8",
-    "@changesets/cli": "^2.30.0",
-    "@types/node": "^25.5.0",
+    "@biomejs/biome": "^2.6.8",
+    "@changesets/cli": "^2.31.1",
+    "@types/node": "^25.9.9",
     "tsup": "^8.5.1",
-    "turbo": "^2.8.20",
-    "typescript": "^6.0.2",
-    "vitest": "^4.1.1"
+    "turbo": "^2.11.13",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.12"
   }
 }
