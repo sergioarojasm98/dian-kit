@@ -1,6 +1,6 @@
 {
   "name": "@dian-kit/core",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Core logic for DIAN electronic invoicing: XML/UBL 2.1, digital signatures, CUFE/CUDE generation",
   "type": "module",
   "main": "./dist/index.cjs",
