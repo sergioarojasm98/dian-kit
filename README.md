@@ -285,6 +285,14 @@ See [`examples/basic-invoice.ts`](./examples/basic-invoice.ts) for the full exam
 
 ---
 
+## Verify
+
+```bash
+pnpm install --frozen-lockfile && pnpm build && pnpm lint && pnpm --filter @dian-kit/core typecheck && pnpm test
+```
+
+What CI runs (`.github/workflows/ci.yml`).
+
 ## Licencia
 
 [MIT](./LICENSE) -- Usa dian-kit libremente en proyectos personales y comerciales.
